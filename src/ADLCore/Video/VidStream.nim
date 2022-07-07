@@ -2,6 +2,7 @@ import HLSManager
 import ../genericMediaTypes
 import std/[asyncdispatch, httpclient, htmlparser, xmltree, strutils, strtabs, parseutils, sequtils, base64]
 import nimcrypto
+import std/json
 
 # Please follow this layout for any additional sites.
 type VidStream* = ref object of RootObj
@@ -10,6 +11,7 @@ type VidStream* = ref object of RootObj
     defaultHeaders: HttpHeaders
     defaultPage: string
     currPage: string
+    stream*: HLSStream
 
 # Initialize the client and add default headers.
 method Init*(this: VidStream, uri: string) {.async.} =
@@ -48,8 +50,8 @@ method SetHLSStream*(this: VidStream) {.async.}=
         bodyKey = videocontent.attr("class").split('-')[1]
         break
     assert bodyKey != ""
-    # VideoIV is used for decrypting returned data.
-    var videoIV: string
+    # VideoKey is used for decrypting returned data.
+    var videoKey: string
     # Wrapper IV is used for decrypting DataKey
     var wrapperIV: string
     let wrapperIVsKeys = this.page.findAll("div")
@@ -58,10 +60,10 @@ method SetHLSStream*(this: VidStream) {.async.}=
         wrapperIV = videocontent.attr("class").split('-')[1]
         continue
       if(videocontent.attr("class").contains("videocontent")):
-        videoIV = videocontent.attr("class").split('-')[1]
+        videoKey = videocontent.attr("class").split('-')[1]
         break
     assert wrapperIV != ""
-    assert videoIV != ""
+    assert videoKey != ""
     var dctx: CBC[aes256]
     var idx: int = 0
     var dText: string = newString(len(dataKey))
@@ -69,15 +71,32 @@ method SetHLSStream*(this: VidStream) {.async.}=
     dctx.decrypt(dataKey, dText)
     var bodyUri = dText.split('&')
     assert bodyUri.len > 1
-    var mID = bodyUri[0]
     var encID = bodyUri[0]
     dctx.clear()
+    var ectx: CBC[aes256]
+    var key = newString(aes256.sizeKey)
+    var iv = newString(aes256.sizeBlock)
+    var plainText = newString(aes256.sizeBlock)
+    var encText = newString(aes256.sizeBlock * 2)
+
+    var padLen: int = aes128.sizeBlock - (len(encID) mod aes128.sizeBlock)
+    var padding: byte = byte padLen
+    copyMem(addr plainText[0], addr encID[0], len(encID))
+    while idx < padLen:
+      copyMem(addr plainText[len(encID) + idx], addr padding, 1)
+      inc idx
+    copyMem(addr key[0], addr bodyKey[0], len(bodyKey))
+    copyMem(addr iv[0], addr wrapperIV[0], len(wrapperIV))
+    ectx.init(key, iv)
+    ectx.encrypt(plainText, encText)
+    ectx.clear()
+    var nString: string = newString(22)
+    var pText: seq[byte] = @(encText.toOpenArrayByte(0, encText.len - aes256.sizeBlock - 1))
     var str: string
     var uriArgs: string
     for strings in bodyUri[1..(len(bodyUri) - 2)]:
       uriArgs.add("&" & strings)
-    ##encrypt = "rocQ6Au42n5Jwk6wHGeuig=="
-    let mainReqUri: string = "https://goload.pro/encrypt-ajax.php?id=" & "rocQ6Au42n5Jwk6wHGeuigRPBWYV8gBNdJZYVnz1dwo=" & uriArgs & "&alias=" & mID
+    let mainReqUri: string = "https://goload.pro/encrypt-ajax.php?id=" & encode(pText) & uriArgs & "&alias=" & encID
     this.ourClient.headers = newHttpHeaders({
         "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:101.0) Gecko/20100101 Firefox/101.0",
         "Referer": "https://gogoplay1.com/streaming.php",
@@ -86,5 +105,16 @@ method SetHLSStream*(this: VidStream) {.async.}=
         "Accept-Encoding": "identity",
     })
     var page: XmlNode
-    echo mainReqUri
-    echo await this.ourClient.getContent(mainReqUri)
+    let data = await this.ourClient.getContent(mainReqUri)
+    var json = parseJSon(data)
+    var jData = json["data"].getStr().decode()
+    dctx.init(videoKey, wrapperIV)
+    var decVideoData: string = newString(len(jData))
+    dctx.decrypt(jData, decVideoData)
+    dctx.clear()
+    decVideoData = decVideoData.replace("\\")
+    # Error in nims json parsing, which results in {expected EOF at EOF}
+    let ima = decVideoData.split('"')
+    let uri = ima[5]
+    let parts: seq[string] = (await this.ourClient.getContent(uri)).split('\n')
+    this.stream = ParseManifest(parts)
