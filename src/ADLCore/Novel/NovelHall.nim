@@ -4,32 +4,8 @@ import EPUB/Types/genericTypes
 import std/[asyncdispatch, httpclient, htmlparser, xmltree, strutils, strtabs, parseutils, sequtils]
 
 # Please follow this layout for any additional sites.
-type NovelHall* = ref object of RootObj
-    ourClient: AsyncHttpClient
-    page: XmlNode
-    defaultHeaders: HttpHeaders
-    defaultPage: string
-    currPage: string
-    chapters*: seq[Chapter]
-    novel*: Novel
-
-# Initialize the client and add default headers.
-method Init*(this: NovelHall, uri: string) {.async.} =
-    this.ourClient = newAsyncHttpClient()
-    this.defaultHeaders = newHttpHeaders({
-        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:101.0) Gecko/20100101 Firefox/101.0",
-        "Referer": "https://www.novelhall.com",
-        "Host": "www.novelhall.com",
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8"
-    })
-    this.novel = Novel()
-    this.ourClient.headers = this.defaultHeaders
-    this.defaultPage = uri
-    this.currPage = uri
-    this.page = parseHtml(await this.ourClient.getContent(uri))
-
-proc GetNodes(this: NovelHall, chapter: Chapter): Future[seq[TiNode]] {.async,cdecl.}=
-    let ret: string = await this.ourClient.getContent(chapter.uri)
+proc GetNodes(this: Novel, chapter: Chapter): seq[TiNode] {.nimcall.} =
+    let ret: string = this.ourClient.getContent(chapter.uri)
     this.currPage = chapter.uri
     this.page = parseHtml(ret)
     var sequence: seq[XmlNode]
@@ -43,10 +19,10 @@ proc GetNodes(this: NovelHall, chapter: Chapter): Future[seq[TiNode]] {.async,cd
         break
     return f
 
-method SetMetaData*(this: NovelHall) {.async.} =
+proc GetMetaData*(this: Novel): MetaData {.nimcall.} =
   var cMetaData: MetaData = MetaData()
   if this.currPage != this.defaultPage:
-    this.page = parseHtml(await this.ourClient.getContent(this.defaultPage))
+    this.page = parseHtml(this.ourClient.getContent(this.defaultPage))
     this.currPage = this.defaultPage
   for element in this.page.findall("div"):
     if(element.attr("class") == "book-main inner mt30"):
@@ -91,17 +67,17 @@ method SetMetaData*(this: NovelHall) {.async.} =
               let seqNodes: seq[XmlNode] = bookInfoEl.items.toSeq()
               let interest = seqNodes[len(seqNodes) - 1]
               cMetaData.description = interest.items.toSeq()[0].innerText
-              this.novel.metaData = cMetaData
+              return cMetaData
               # No need to continue iteration after getting final element.
-              return
             else:
               continue
-  this.novel.metaData = cMetaData
+  return cMetaData
 
 
-method GetChapterSequence*(this: NovelHall, callBack: proc (total, progress, speed: BiggestInt) {.async,cdecl.}): Future[void] {.async,cdecl.} =
+proc GetChapterSequence*(this: Novel): seq[Chapter] {.nimcall.} =
     var sequence: seq[XmlNode]
     this.page.findall("div", sequence)
+    var chapters: seq[Chapter]
     for n in sequence:
         if n.attr("class") == "book-catalog inner mt20":
             for items in n.items:
@@ -112,10 +88,15 @@ method GetChapterSequence*(this: NovelHall, callBack: proc (total, progress, spe
                             if textEl.kind == xnElement and textEl.tag == "li":
                                 #FINALLY
                                 let child: XmlNode = textEl.child("a")
-                                this.chapters.add(Chapter(name: child.innerText, uri: "https://www.novelhall.com" & child.attr("href")))
+                                chapters.add(Chapter(name: child.innerText, uri: "https://www.novelhall.com" & child.attr("href")))
+                        return chapters
 
-method GetChapterNodes*(this: NovelHall, chapter: Chapter): Future[seq[TiNode]] {.async.} =
-    return await GetNodes(this, chapter)
-
-method SetChapterNodes*(this: NovelHall, chapter: Chapter): Future[void] {.async.} =
-    chapter.contentSeq = await GetNodes(this, chapter)
+# Initialize the client and add default headers.
+proc Init*(uri: string): HeaderTuple {.nimcall.} =
+    let defaultHeaders = newHttpHeaders({
+        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:101.0) Gecko/20100101 Firefox/101.0",
+        "Referer": "https://www.novelhall.com",
+        "Host": "www.novelhall.com",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8"
+    })
+    return (headers: defaultHeaders, defaultPage: uri, getNodes: GetNodes, getMetaData: GetMetaData, getChapterSequence: GetChapterSequence)

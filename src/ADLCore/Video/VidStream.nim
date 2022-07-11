@@ -27,10 +27,9 @@ method Init*(this: VidStream, uri: string) {.async.} =
     })
     this.ourClient.headers = this.defaultHeaders
     this.defaultPage = uri
-    this.currPage = uri
-    this.page = parseHtml(await this.ourClient.getContent(uri))
 
-method SetHLSStream*(this: VidStream) {.async.}=
+# Grab the HLS stream for the current video, and sets the stream property for VidStream
+method SetHLSStream*(this: VidStream) {.async.} =
     let streamingUri: string = "https:" & this.page.findAll("iframe")[0].attr("src")
     this.currPage = streamingUri
     this.page = parseHtml(await this.ourClient.getContent(streamingUri))
@@ -118,3 +117,5 @@ method SetHLSStream*(this: VidStream) {.async.}=
     let uri = ima[5]
     let parts: seq[string] = (await this.ourClient.getContent(uri)).split('\n')
     this.stream = ParseManifest(parts)
+
+#method GetAllRelated(this: NovelHall): seq[NovelHall] =
