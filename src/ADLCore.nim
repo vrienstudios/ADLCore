@@ -25,19 +25,20 @@ proc onProgressChanged(total, progress, speed: BiggestInt) {.async,cdecl.} =
 
 echo "Making Object"
 var novelObj: Novel
-proc GenerateNewNovelInstance*(site: string): Novel =
+
+proc GenerateNewNovelInstance*(site: string, uri: string): Novel =
   case site:
     of "NovelHall":
-      let hTuple = NovelHall.Init("https://www.novelhall.com/the-rise-of-the-empire-21939/")
+      let hTuple = NovelHall.Init(uri)
       novelObj = Novel(defaultHeaders: hTuple[0], defaultPage: hTuple[1], getNodes: hTuple[2], getMetaData: hTuple[3], getChapterSequence: hTuple[4])
     else:
       discard
 
-discard GenerateNewNovelInstance("NovelHall")
+discard GenerateNewNovelInstance("NovelHall", "https://www.novelhall.com/the-rise-of-the-empire-21939/")
 novelObj.Init()
 var mdata: MetaData = novelObj.getMetaData(novelObj)
-echo mdata.name
-echo mdata.author
+echo "name: " & mdata.name
+echo "author: " & mdata.author
 
 #proc GetNextChapterWithText(novel: Novel): Chapter =
 #  if(novel.currChapter >= novel.chapters.len()):

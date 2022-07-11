@@ -32,6 +32,7 @@ proc GetMetaData*(this: Novel): MetaData {.nimcall.} =
         if bookEl.attr("class") == "book-img hidden-xs":
           cMetaData.coverUri = bookEl.child("img").attr("src")
         elif bookEl.attr("class") == "book-info":
+          cMetaData.name = bookEl.child("h1").innerText
           for bookInfoEl in bookEl.items:
             if bookInfoEl.kind != xnElement:
               continue
@@ -61,7 +62,6 @@ proc GetMetaData*(this: Novel): MetaData {.nimcall.} =
                       k[d] = mString[i]
                       inc i
                       inc d
-                    echo k
                     cMetaData.statusType = parseEnum[Status](k)
             of "intro":
               let seqNodes: seq[XmlNode] = bookInfoEl.items.toSeq()
@@ -75,6 +75,9 @@ proc GetMetaData*(this: Novel): MetaData {.nimcall.} =
 
 
 proc GetChapterSequence*(this: Novel): seq[Chapter] {.nimcall.} =
+    if this.currPage != this.defaultPage:
+      this.page = parseHtml(this.ourClient.getContent(this.defaultPage))
+      this.currPage = this.defaultPage
     var sequence: seq[XmlNode]
     this.page.findall("div", sequence)
     var chapters: seq[Chapter]
@@ -90,6 +93,7 @@ proc GetChapterSequence*(this: Novel): seq[Chapter] {.nimcall.} =
                                 let child: XmlNode = textEl.child("a")
                                 chapters.add(Chapter(name: child.innerText, uri: "https://www.novelhall.com" & child.attr("href")))
                         return chapters
+proc GetHomePage*()
 
 # Initialize the client and add default headers.
 proc Init*(uri: string): HeaderTuple {.nimcall.} =
