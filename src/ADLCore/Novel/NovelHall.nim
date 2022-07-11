@@ -93,7 +93,21 @@ proc GetChapterSequence*(this: Novel): seq[Chapter] {.nimcall.} =
                                 let child: XmlNode = textEl.child("a")
                                 chapters.add(Chapter(name: child.innerText, uri: "https://www.novelhall.com" & child.attr("href")))
                         return chapters
-proc GetHomePage*()
+proc GetHomePage*(this: Novel): seq[Novel] {.nimcall.} =
+  var novels: seq[Novel]
+  this.page = parseHtml(this.ourClient.getContent("https://www.novelhall.com"))
+  this.currPage = "https://www.novelhall.com"
+  var homeSel: XmlNode
+  for n in this.page.items:
+    if n.attr("class") == "section1 inner mt30":
+      homeSel = n.child("ul")
+      break
+  for n in homeSel.items:
+    if n.kind == xnElement and n.tag == "li":
+      novels.add(Novel(metaData: ParseCarouselNodeToNovel(n)))
+
+proc ParseCarouselNodeToNovel(node: XmlNode): MetaData =
+  return nil
 
 # Initialize the client and add default headers.
 proc Init*(uri: string): HeaderTuple {.nimcall.} =

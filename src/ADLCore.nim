@@ -35,10 +35,11 @@ proc GenerateNewNovelInstance*(site: string, uri: string): Novel =
       discard
 
 discard GenerateNewNovelInstance("NovelHall", "https://www.novelhall.com/the-rise-of-the-empire-21939/")
-novelObj.Init()
-var mdata: MetaData = novelObj.getMetaData(novelObj)
-echo "name: " & mdata.name
-echo "author: " & mdata.author
+novelObj.getHomeCarousel()
+#novelObj.Init()
+#var mdata: MetaData = novelObj.getMetaData(novelObj)
+#echo "name: " & mdata.name
+#echo "author: " & mdata.author
 
 #proc GetNextChapterWithText(novel: Novel): Chapter =
 #  if(novel.currChapter >= novel.chapters.len()):
