@@ -4,6 +4,7 @@ import ./ADLCore/Novel/test
 import./ADLCore/Video/VidStream
 import std/[asyncdispatch, strutils]
 import ./ADLCore/genericMediaTypes
+import EPUB
 
 proc onProgressChanged(total, progress, speed: BiggestInt) {.async,cdecl.} =
     echo("Downloaded ", progress, " of ", total)
@@ -23,8 +24,8 @@ proc onProgressChanged(total, progress, speed: BiggestInt) {.async,cdecl.} =
 #assert len(d) > 10
 #echo "Found $1 Chapters From NovelHall" % [$len(b)]
 
-echo "Making Object"
-var novelObj: Novel
+#echo "Making Object"
+#var novelObj: Novel
 
 proc GenerateNewNovelInstance*(site: string, uri: string): Novel =
   case site:
@@ -36,6 +37,11 @@ proc GenerateNewNovelInstance*(site: string, uri: string): Novel =
 
 discard GenerateNewNovelInstance("NovelHall", "https://www.novelhall.com/the-rise-of-the-empire-21939/")
 novelObj.getHomeCarousel()
+
+proc GeneratePageFromChapter*(this: Chapter): Page =
+  return GeneratePage(this.contentSeq, this.name)
+
+#discard GenerateNewNovelInstance("NovelHall", "https://www.novelhall.com/the-rise-of-the-empire-21939/")
 #novelObj.Init()
 #var mdata: MetaData = novelObj.getMetaData(novelObj)
 #echo "name: " & mdata.name

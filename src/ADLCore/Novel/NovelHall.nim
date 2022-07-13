@@ -93,6 +93,7 @@ proc GetChapterSequence*(this: Novel): seq[Chapter] {.nimcall.} =
                                 let child: XmlNode = textEl.child("a")
                                 chapters.add(Chapter(name: child.innerText, uri: "https://www.novelhall.com" & child.attr("href")))
                         return chapters
+
 proc GetHomePage*(this: Novel): seq[Novel] {.nimcall.} =
   var novels: seq[Novel]
   this.page = parseHtml(this.ourClient.getContent("https://www.novelhall.com"))
@@ -107,6 +108,10 @@ proc GetHomePage*(this: Novel): seq[Novel] {.nimcall.} =
       novels.add(Novel(metaData: ParseCarouselNodeToNovel(n)))
 
 proc ParseCarouselNodeToNovel(node: XmlNode): MetaData =
+  return nil
+  
+# Returns basic novel objects without MetaData.
+proc Search*(term: string): Novel =
   return nil
 
 # Initialize the client and add default headers.

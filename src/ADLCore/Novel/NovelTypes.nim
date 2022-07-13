@@ -34,14 +34,14 @@ type
       # Function to get the home carousel of the downloader
       getHomeCarousel: proc(this: Novel): seq[Novel] {.nimcall.}
 
-method ProcessTuple(this: Novel, hTuple: HeaderTuple) =
-  #defaultHeaders: hTuple[0], defaultPage: hTuple[1], getNodes: hTuple[2], getMetaData: hTuple[3], getChapterSequence: hTuple[4]
+method Init*(this: Novel, hTuple: HeaderTuple) =
+  this.setTuple(hTuple)
+  this.ourClient = newHttpClient()
+  this.ourClient.headers = this.defaultHeaders
+
+method setTuple(this: Novel, hTuple: HeaderTuple) =
   this.defaultHeaders = hTuple[0]
   this.defaultPage = hTuple[1]
   this.getNodes = hTuple[2]
   this.getMetaData = hTuple[3]
   this.getChapterSequence = hTuple[4]
-
-method Init*(this: Novel) =
-  this.ourClient = newHttpClient()
-  this.ourClient.headers = this.defaultHeaders
