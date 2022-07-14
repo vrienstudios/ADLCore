@@ -102,4 +102,4 @@ proc Init*(uri: string): HeaderTuple {.nimcall.} =
         "Host": "www.novelhall.com",
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8"
     })
-    return (headers: defaultHeaders, defaultPage: uri, getNodes: GetNodes, getMetaData: GetMetaData, getChapterSequence: GetChapterSequence, getHomeCarousel: GetHomePage)
+    return (headers: defaultHeaders, defaultPage: uri, getNodes: GetNodes, getMetaData: GetMetaData, getChapterSequence: GetChapterSequence, getHomeCarousel: GetHomePage, searchDownloader: nil)

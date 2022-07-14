@@ -127,19 +127,31 @@ proc GetHomePage*(this: Novel): seq[Novel] {.nimcall.} =
     if n.kind == xnElement and n.tag == "li":
       novels.add(Novel(metaData: ParseCarouselNodeToNovel(n)))
   return novels
-  
+
 # Returns basic novel objects without MetaData.
-proc Search*(this: Novel, term: string): Novel =
+proc Search*(this: Novel, term: string): seq[MetaData] =
+  var metaDataSeq: seq[MetaData] = @[]
   let content = this.ourClient.getContent("https://www.novelhall.com/index.php?s=so&module=book&keyword=" & term.replace(' ', '&'))
   this.page = parseHtml(content)
   this.currPage = "https://www.novelhall.com/index.php"
   var container: XmlNode
-  for nodes in this.page.findall("div"):
-    if nodes.attr("class") == "container":
-      container = nodes
+  for nodes in this.page.findAll("section"):
+    if nodes.attr("id") == "main":
+      container = nodes.findAll("div")[1]
+      break
   assert container != nil
-
-  return nil
+  container = container.child("table")
+  container = container.child("tbody")
+  assert container != nil
+  for node in container.findAll("tr"):
+    let tD = node.findAll("td").toSeq()
+    var data = MetaData()
+    data.genre = @[td[0].child("a").innerText]
+    let uriBN = td[1].child("a")
+    data.name = uriBN.innerText
+    data.uri = "https://www.novelhall.com" & uriBN.attr("href")
+    metaDataSeq.add(data)
+  return metaDataSeq
 
 # Initialize the client and add default headers.
 proc Init*(uri: string): HeaderTuple {.nimcall.} =
@@ -149,4 +161,4 @@ proc Init*(uri: string): HeaderTuple {.nimcall.} =
         "Host": "www.novelhall.com",
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8"
     })
-    return (headers: defaultHeaders, defaultPage: uri, getNodes: GetNodes, getMetaData: GetMetaData, getChapterSequence: GetChapterSequence, getHomeCarousel: GetHomePage)
+    return (headers: defaultHeaders, defaultPage: uri, getNodes: GetNodes, getMetaData: GetMetaData, getChapterSequence: GetChapterSequence, getHomeCarousel: GetHomePage, searchDownloader: Search)
