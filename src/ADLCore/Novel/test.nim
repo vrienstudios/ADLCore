@@ -73,6 +73,9 @@ proc GetMetaData*(this: Novel): MetaData {.nimcall.} =
               continue
   return cMetaData
 
+proc GetHomePage*(this: Novel): seq[Novel] {.nimcall.} =
+  var novels: seq[Novel]
+  return novels
 
 proc GetChapterSequence*(this: Novel): seq[Chapter] {.nimcall.} =
     var sequence: seq[XmlNode]
@@ -99,4 +102,4 @@ proc Init*(uri: string): HeaderTuple {.nimcall.} =
         "Host": "www.novelhall.com",
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8"
     })
-    return (headers: defaultHeaders, defaultPage: uri, getNodes: GetNodes, getMetaData: GetMetaData, getChapterSequence: GetChapterSequence)
+    return (headers: defaultHeaders, defaultPage: uri, getNodes: GetNodes, getMetaData: GetMetaData, getChapterSequence: GetChapterSequence, getHomeCarousel: GetHomePage)

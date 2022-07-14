@@ -4,7 +4,8 @@ import std/[asyncdispatch, httpclient, xmltree, tables]
 
 type
   HeaderTuple* = tuple[headers: HttpHeaders, defaultPage: string, getNodes: proc(this: Novel, chapter: Chapter): seq[TiNode] {.nimcall.},
-    getMetaData: proc(this: Novel): MetaData {.nimcall.}, getChapterSequence: proc(this: Novel): seq[Chapter] {.nimcall.}]
+    getMetaData: proc(this: Novel): MetaData {.nimcall.}, getChapterSequence: proc(this: Novel): seq[Chapter] {.nimcall.},
+    getHomeCarousel: proc(this: Novel): seq[Novel] {.nimcall.}]
   Chapter* = ref object of RootObj
       name*: string
       number*: int
@@ -32,16 +33,18 @@ type
       # Function for setting chapters
       getChapterSequence*: proc(this: Novel): seq[Chapter] {.nimcall.}
       # Function to get the home carousel of the downloader
-      getHomeCarousel: proc(this: Novel): seq[Novel] {.nimcall.}
+      getHomeCarousel*: proc(this: Novel): seq[Novel] {.nimcall.}
+
+method setTuple*(this: Novel, hTuple: HeaderTuple) =
+  this.defaultHeaders = hTuple[0]
+  this.defaultPage = hTuple[1]
+  this.getNodes = hTuple[2]
+  this.getMetaData = hTuple[3]
+  this.getChapterSequence = hTuple[4]
+  this.getHomeCarousel = hTuple[5]
 
 method Init*(this: Novel, hTuple: HeaderTuple) =
   this.setTuple(hTuple)
   this.ourClient = newHttpClient()
   this.ourClient.headers = this.defaultHeaders
 
-method setTuple(this: Novel, hTuple: HeaderTuple) =
-  this.defaultHeaders = hTuple[0]
-  this.defaultPage = hTuple[1]
-  this.getNodes = hTuple[2]
-  this.getMetaData = hTuple[3]
-  this.getChapterSequence = hTuple[4]

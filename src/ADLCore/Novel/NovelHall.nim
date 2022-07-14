@@ -94,24 +94,51 @@ proc GetChapterSequence*(this: Novel): seq[Chapter] {.nimcall.} =
                                 chapters.add(Chapter(name: child.innerText, uri: "https://www.novelhall.com" & child.attr("href")))
                         return chapters
 
+proc ParseCarouselNodeToNovel(node: XmlNode): MetaData {.nimcall.} =
+  var meta: MetaData = MetaData()
+  for nodes in node.items:
+    if nodes.kind == xnElement and nodes.attr("class") == "book-img":
+      let b = nodes.child("a")
+      meta.uri = "https://novelhall.com" & b.attr("href")
+      let img = b.child("img")
+      meta.coverUri = b.attr("src")
+      meta.name = b.attr("alt")
+    elif nodes.kind == xnElement and nodes.attr("class") == "book-info":
+      let metaInfo = nodes.child("div")
+      meta.author = metaInfo.child("span").innerText
+      meta.description = nodes.child("p").innerText
+      return meta
+    else:
+      continue
+  return meta
+
 proc GetHomePage*(this: Novel): seq[Novel] {.nimcall.} =
-  var novels: seq[Novel]
-  this.page = parseHtml(this.ourClient.getContent("https://www.novelhall.com"))
-  this.currPage = "https://www.novelhall.com"
+  var novels: seq[Novel] = @[]
+  if this.currPage != "https://www.novelhall.com":
+    let content = this.ourClient.getContent("https://www.novelhall.com")
+    this.page = parseHtml(content)
+    this.currPage = "https://www.novelhall.com"
   var homeSel: XmlNode
-  for n in this.page.items:
-    if n.attr("class") == "section1 inner mt30":
+  for n in this.page.findall("div"):
+    if n.kind == xnElement and n.attr("class") == "section1 inner mt30":
       homeSel = n.child("ul")
       break
   for n in homeSel.items:
     if n.kind == xnElement and n.tag == "li":
       novels.add(Novel(metaData: ParseCarouselNodeToNovel(n)))
-
-proc ParseCarouselNodeToNovel(node: XmlNode): MetaData =
-  return nil
+  return novels
   
 # Returns basic novel objects without MetaData.
-proc Search*(term: string): Novel =
+proc Search*(this: Novel, term: string): Novel =
+  let content = this.ourClient.getContent("https://www.novelhall.com/index.php?s=so&module=book&keyword=" & term.replace(' ', '&'))
+  this.page = parseHtml(content)
+  this.currPage = "https://www.novelhall.com/index.php"
+  var container: XmlNode
+  for nodes in this.page.findall("div"):
+    if nodes.attr("class") == "container":
+      container = nodes
+  assert container != nil
+
   return nil
 
 # Initialize the client and add default headers.
@@ -122,4 +149,4 @@ proc Init*(uri: string): HeaderTuple {.nimcall.} =
         "Host": "www.novelhall.com",
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8"
     })
-    return (headers: defaultHeaders, defaultPage: uri, getNodes: GetNodes, getMetaData: GetMetaData, getChapterSequence: GetChapterSequence)
+    return (headers: defaultHeaders, defaultPage: uri, getNodes: GetNodes, getMetaData: GetMetaData, getChapterSequence: GetChapterSequence, getHomeCarousel: GetHomePage)
