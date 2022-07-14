@@ -41,9 +41,11 @@ type
 method getNodes*(this: Novel, chapter: Chapter): seq[TiNode] =
   return this.getNodes(this, chapter)
 method getMetaData*(this: Novel): MetaData =
-  return this.getMetaData(this)
+  this.metaData = this.getMetaData(this)
+  return this.metaData
 method getChapterSequence*(this: Novel): seq[Chapter] =
-  return this.getChapterSequence(this)
+  this.chapters = this.getChapterSequence(this)
+  return this.chapters
 method getHomeCarousel*(this: Novel): seq[Novel] =
   return this.getHomeCarousel(this)
 method searchDownloader*(this: Novel, str: string): seq[MetaData] =
