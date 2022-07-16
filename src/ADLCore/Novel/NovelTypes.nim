@@ -36,6 +36,8 @@ type
       getHomeCarousel: proc(this: Novel): seq[Novel] {.nimcall.}
       # Function to get search information from
       searchDownloader: proc(this: Novel, str: string): seq[MetaData] {.nimcall.}
+      # Function to get the data from the cover using ourClient
+      getCover: proc (this: Novel): string {.nimcall.[chapter.name, $idx, $novel.chapters.len]}
 
 # Function 'wrappers' to call the functions in a more logical manner.
 method getNodes*(this: Novel, chapter: Chapter): seq[TiNode] =
