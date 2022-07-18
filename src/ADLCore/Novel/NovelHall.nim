@@ -1,10 +1,10 @@
 import ./NovelTypes
 import ../genericMediaTypes
 import EPUB/Types/genericTypes
-import std/[asyncdispatch, httpclient, htmlparser, xmltree, strutils, strtabs, parseutils, sequtils]
+import std/[httpclient, htmlparser, xmltree, strutils, strtabs, parseutils, sequtils]
 
 # Please follow this layout for any additional sites.
-proc GetNodes(this: Novel, chapter: Chapter): seq[TiNode] {.nimcall.} =
+proc GetNodes(this: Novel, chapter: Chapter): seq[TiNode] {.nimcall,exportc,dynlib.} =
     let ret: string = this.ourClient.getContent(chapter.uri)
     this.currPage = chapter.uri
     this.page = parseHtml(ret)
@@ -19,7 +19,7 @@ proc GetNodes(this: Novel, chapter: Chapter): seq[TiNode] {.nimcall.} =
         break
     return f
 
-proc GetMetaData*(this: Novel): MetaData {.nimcall.} =
+proc GetMetaData*(this: Novel): MetaData {.nimcall,exportc,dynlib.} =
   var cMetaData: MetaData = MetaData()
   if this.currPage != this.defaultPage:
     this.page = parseHtml(this.ourClient.getContent(this.defaultPage))
@@ -74,7 +74,7 @@ proc GetMetaData*(this: Novel): MetaData {.nimcall.} =
   return cMetaData
 
 
-proc GetChapterSequence*(this: Novel): seq[Chapter] {.nimcall.} =
+proc GetChapterSequence*(this: Novel): seq[Chapter] {.nimcall,exportc,dynlib.} =
     if this.currPage != this.defaultPage:
       this.page = parseHtml(this.ourClient.getContent(this.defaultPage))
       this.currPage = this.defaultPage
@@ -94,7 +94,7 @@ proc GetChapterSequence*(this: Novel): seq[Chapter] {.nimcall.} =
                                 chapters.add(Chapter(name: child.innerText, uri: "https://www.novelhall.com" & child.attr("href")))
                         return chapters
 
-proc ParseCarouselNodeToNovel(node: XmlNode): MetaData {.nimcall.} =
+proc ParseCarouselNodeToNovel(node: XmlNode): MetaData {.nimcall,exportc,dynlib.} =
   var meta: MetaData = MetaData()
   for nodes in node.items:
     if nodes.kind == xnElement and nodes.attr("class") == "book-img":
@@ -112,7 +112,7 @@ proc ParseCarouselNodeToNovel(node: XmlNode): MetaData {.nimcall.} =
       continue
   return meta
 
-proc GetHomePage*(this: Novel): seq[Novel] {.nimcall.} =
+proc GetHomePage*(this: Novel): seq[Novel] {.nimcall,exportc,dynlib.} =
   var novels: seq[Novel] = @[]
   if this.currPage != "https://www.novelhall.com":
     let content = this.ourClient.getContent("https://www.novelhall.com")
@@ -129,7 +129,7 @@ proc GetHomePage*(this: Novel): seq[Novel] {.nimcall.} =
   return novels
 
 # Returns basic novel objects without MetaData.
-proc Search*(this: Novel, term: string): seq[MetaData] =
+proc Search*(this: Novel, term: string): seq[MetaData] {.nimcall,exportc,dynlib.} =
   var metaDataSeq: seq[MetaData] = @[]
   let content = this.ourClient.getContent("https://www.novelhall.com/index.php?s=so&module=book&keyword=" & term.replace(' ', '&'))
   this.page = parseHtml(content)
@@ -154,7 +154,7 @@ proc Search*(this: Novel, term: string): seq[MetaData] =
   return metaDataSeq
 
 # Initialize the client and add default headers.
-proc Init*(uri: string): HeaderTuple {.nimcall.} =
+proc Init*(uri: string): HeaderTuple {.nimcall,exportc,dynlib.} =
     let defaultHeaders = newHttpHeaders({
         "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:101.0) Gecko/20100101 Firefox/101.0",
         "Referer": "https://www.novelhall.com",

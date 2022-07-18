@@ -3,36 +3,14 @@ import ../genericMediaTypes
 import std/[asyncdispatch, httpclient, htmlparser, xmltree, strutils, strtabs, parseutils, sequtils, base64]
 import nimcrypto
 import std/json
-
+import VideoType
 # Please follow this layout for any additional sites.
-type VidStream* = ref object of RootObj
-    ourClient: AsyncHttpClient
-    page: XmlNode
-    defaultHeaders: HttpHeaders
-    defaultPage: string
-    currPage: string
-    stream*: HLSStream
-
-# Initialize the client and add default headers.
-method Init*(this: VidStream, uri: string) {.async.} =
-    this.ourClient = newAsyncHttpClient()
-    this.defaultHeaders = newHttpHeaders({
-        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:101.0) Gecko/20100101 Firefox/101.0",
-        "Referer": "https://gogoplay1.com",
-        "Accept": "*/*",
-        "Origin": "https://gogoplay1.com",
-        "Accept-Encoding": "identity",
-        "sec-fetch-site": "same-origin",
-        "sec-fetch-mode": "no-cors"
-    })
-    this.ourClient.headers = this.defaultHeaders
-    this.defaultPage = uri
 
 # Grab the HLS stream for the current video, and sets the stream property for VidStream
-method SetHLSStream*(this: VidStream) {.async.} =
+proc SetHLSStream*(this: Video): bool {.nimcall.} =
     let streamingUri: string = "https:" & this.page.findAll("iframe")[0].attr("src")
     this.currPage = streamingUri
-    this.page = parseHtml(await this.ourClient.getContent(streamingUri))
+    this.page = parseHtml(this.ourClient.getContent(streamingUri))
     let pageScripts = this.page.findAll("script")
     # VidStream has a very roundabout way of encrypting their content
     # Datakey is a url, which you have to use to complete the ajax request.
@@ -104,7 +82,7 @@ method SetHLSStream*(this: VidStream) {.async.} =
         "Accept-Encoding": "identity",
     })
     var page: XmlNode
-    let data = await this.ourClient.getContent(mainReqUri)
+    let data = this.ourClient.getContent(mainReqUri)
     var json = parseJSon(data)
     var jData = json["data"].getStr().decode()
     dctx.init(videoKey, wrapperIV)
@@ -115,7 +93,29 @@ method SetHLSStream*(this: VidStream) {.async.} =
     # Error in nims json parsing, which results in {expected EOF at EOF}
     let ima = decVideoData.split('"')
     let uri = ima[5]
-    let parts: seq[string] = (await this.ourClient.getContent(uri)).split('\n')
-    this.stream = ParseManifest(parts)
+    let parts: seq[string] = (this.ourClient.getContent(uri)).split('\n')
+    this.hlsStream = ParseManifest(parts)
+    return true
 
-#method GetAllRelated(this: NovelHall): seq[NovelHall] =
+proc GetMetaData(this: Video): MetaData {.nimcall.} =
+  return nil
+
+# Initialize the client and add default headers.
+proc Init*(this: Video, uri: string): HeaderTuple {.nimcall.} =
+    let defaultHeaders = newHttpHeaders({
+        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:101.0) Gecko/20100101 Firefox/101.0",
+        "Referer": "https://gogoplay1.com",
+        "Accept": "*/*",
+        "Origin": "https://gogoplay1.com",
+        "Accept-Encoding": "identity",
+        "sec-fetch-site": "same-origin",
+        "sec-fetch-mode": "no-cors"
+    })
+    return (headers: defaultHeaders,
+    defaultPage: uri,
+    getStream: nil,
+    setStream: SetHLSStream,
+    getMetaData: GetMetaData,
+    getEpisodeSequence: nil,
+    getHomeCarousel: nil,
+    searchDownloader: nil,)
