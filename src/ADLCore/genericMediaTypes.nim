@@ -5,6 +5,7 @@ type
         original, translated, machine, mix, unknown
     MetaData* = ref object of RootObj
         name*: string
+        series*: string
         author*: string
         rating*: string
         genre*: seq[string]

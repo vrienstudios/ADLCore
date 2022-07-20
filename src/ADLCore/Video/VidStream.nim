@@ -41,24 +41,27 @@ proc SetHLSStream*(this: Video): bool {.nimcall.} =
         break
     assert wrapperIV != ""
     assert videoKey != ""
+    # Get the Url params
     var dctx: CBC[aes256]
     var idx: int = 0
     var dText: string = newString(len(dataKey))
     dctx.init(bodyKey, wrapperIV)
     dctx.decrypt(dataKey, dText)
-    var bodyUri = dText.split('&')
+    var bodyUri = dText.split('&') # param list
     assert bodyUri.len > 1
-    var encID = bodyUri[0]
+    var encID = bodyUri[0] # ID of the anime
     dctx.clear()
+    # Setup encryption of the ID for the encrypt-ajax handler. (base64, key 128, blocksize 256)
     var ectx: CBC[aes256]
     var key = newString(aes256.sizeKey)
     var iv = newString(aes256.sizeBlock)
     var plainText = newString(aes256.sizeBlock)
     var encText = newString(aes256.sizeBlock * 2)
-
+    # Calculate padding length PKSC7 padding.
     var padLen: int = aes128.sizeBlock - (len(encID) mod aes128.sizeBlock)
     var padding: byte = byte padLen
     copyMem(addr plainText[0], addr encID[0], len(encID))
+    # Add the calculated padding.
     while idx < padLen:
       copyMem(addr plainText[len(encID) + idx], addr padding, 1)
       inc idx
@@ -67,12 +70,14 @@ proc SetHLSStream*(this: Video): bool {.nimcall.} =
     ectx.init(key, iv)
     ectx.encrypt(plainText, encText)
     ectx.clear()
+    # Probably shouldn't have made this of a set size, but it should be within this length.
     var nString: string = newString(22)
     var pText: seq[byte] = @(encText.toOpenArrayByte(0, encText.len - aes256.sizeBlock - 1))
     var str: string
     var uriArgs: string
     for strings in bodyUri[1..(len(bodyUri) - 2)]:
       uriArgs.add("&" & strings)
+    # Create the final url to request from.
     let mainReqUri: string = "https://goload.pro/encrypt-ajax.php?id=" & encode(pText) & uriArgs & "&alias=" & encID
     this.ourClient.headers = newHttpHeaders({
         "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:101.0) Gecko/20100101 Firefox/101.0",
@@ -85,12 +90,15 @@ proc SetHLSStream*(this: Video): bool {.nimcall.} =
     let data = this.ourClient.getContent(mainReqUri)
     var json = parseJSon(data)
     var jData = json["data"].getStr().decode()
+    # Load and decrypt the json response
     dctx.init(videoKey, wrapperIV)
     var decVideoData: string = newString(len(jData))
     dctx.decrypt(jData, decVideoData)
     dctx.clear()
+    # Fix URL's within the response, '\' characters in front of '/' are replaced.
     decVideoData = decVideoData.replace("\\")
-    # Error in nims json parsing, which results in {expected EOF at EOF}
+    # Error in nims json parsing, which results in {expected EOF at EOF}, so we can't load the returned json into the jsonParser.
+    # Instead, I do a bit of manual, but unsafe parsing, which should be changed, when the json library is updated.
     let ima = decVideoData.split('"')
     let uri = ima[5]
     let parts: seq[string] = (this.ourClient.getContent(uri)).split('\n')
@@ -98,7 +106,59 @@ proc SetHLSStream*(this: Video): bool {.nimcall.} =
     return true
 
 proc GetMetaData(this: Video): MetaData {.nimcall.} =
-  return nil
+  if this.currPage != this.defaultPage:
+    this.ourClient.headers = this.defaultHeaders
+    this.page = parseHtml(this.ourClient.getContent(this.defaultPage))
+    this.currPage = this.defaultPage
+  var videoInfoLeft: XmlNode
+  for divVideo in this.page.findAll("div"):
+    if divVideo.attr("class") == "video-info-left":
+      videoInfoLeft = divVideo
+      break
+  assert videoInfoLeft != nil
+  # The title of the anime is the first <h1> tag within video-info-left
+  var title: string
+  var videoDetail: XmlNode
+  for divClass in videoInfoLeft.items:
+    if divClass.kind == xnElement:
+      if title == nil and divClass.name == "h1":
+        title = divClass.innerText
+      elif divClass.attr("class") == "video-details":
+        this.metaData.series = divClass.child("span").innerText
+        this.metaData.description = divclass.child("div").innerText
+        break
+  return this.metaData
+
+proc GetEpisodeMetaDataObject(this: XmlNode): MetaData {.nimcall.} =
+  var metaData: MetaData = MetaData()
+  let node = this.child("a")
+  metaData.uri = node.attr("href")
+  # OM MY GOD, WHY
+  for divider in node.items:
+    if divider.kind != xnElement:
+      continue
+    case divider.attr("class"):
+      of "img":
+        metaData.coverUri = divider.child("div").child("img").attr("src")
+        break
+      of "name":
+        metada.name = divider.innerText
+        break
+      else:
+        discard
+  return metaData
+
+proc GetEpisodeSequence(this: Video): seq[MetaData] {.nimcall.} =
+  var mDataSeq: seq[MetaData] = @[]
+  if this.currPage != this.defaultPage:
+    this.page = parseHtml(this.ourClient.getContent(this.defaultPage))
+    this.currPage = this.defaultPage
+  for nodes in this.page.findAll("ul"):
+    if nodes.attr("class") == "listing items list":
+      for li in nodes.findAll("li"):
+        mDataSeq.add(GetEpisodeMetaDataObject(li))
+      break
+  return mDataSeq
 
 # Initialize the client and add default headers.
 proc Init*(this: Video, uri: string): HeaderTuple {.nimcall.} =
@@ -116,6 +176,6 @@ proc Init*(this: Video, uri: string): HeaderTuple {.nimcall.} =
     getStream: nil,
     setStream: SetHLSStream,
     getMetaData: GetMetaData,
-    getEpisodeSequence: nil,
+    getEpisodeSequence: GetEpisodeSequence,
     getHomeCarousel: nil,
     searchDownloader: nil,)

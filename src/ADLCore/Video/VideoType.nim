@@ -6,7 +6,7 @@ type
     getStream: proc(this: Video): string {.nimcall.},
     setStream: proc(this: Video): bool {.nimcall.},
     getMetaData: proc(this: Video): MetaData {.nimcall.},
-    getEpisodeSequence: proc(this: Video): seq[Video] {.nimcall.},
+    getEpisodeSequence: proc(this: Video): seq[MetaData] {.nimcall.},
     getHomeCarousel: proc(this: Video): seq[MetaData] {.nimcall.},
     searchDownloader: proc(this: Video, str: string): seq[MetaData] {.nimcall.}]
   Video* = ref object of RootObj
@@ -27,7 +27,7 @@ type
     # Function for gathering MetaData object for Video.
     getMetaData: proc(this: Video): MetaData {.nimcall.}
     # Function for gathering list of related episodes.
-    getEpisodeSequence: proc(this: Video): seq[Video] {.nimcall.}
+    getEpisodeSequence: proc(this: Video): seq[MetaData] {.nimcall.}
     # Function for getting the home page/carousel..
     getHomeCarousel: proc(this: Video): seq[MetaData] {.nimcall.}
     # Function for getting search information..
@@ -43,7 +43,7 @@ method getStream(this: Video): string =
 method getMetaData*(this: Video): MetaData =
   this.metaData = this.getMetaData(this)
   return this.metaData
-method getEpisodeSequence*(this: Video): seq[Video] =
+method getEpisodeSequence*(this: Video): seq[MetaData] =
   return this.getEpisodeSequence(this)
 method getHomeCarousel*(this: Video): seq[MetaData] =
   return this.getHomeCarousel(this)
