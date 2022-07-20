@@ -1,7 +1,7 @@
 import ./ADLCore/Novel/NovelTypes
 import ./ADLCore/Novel/NovelHall
 import ./ADLCore/Novel/test
-import./ADLCore/Video/VidStream
+import ./ADLCore/Video/VidStream, ./ADLCore/Video/VideoType
 import std/[asyncdispatch, strutils, dynlib]
 import ./ADLCore/genericMediaTypes
 import EPUB

@@ -3,8 +3,7 @@ import ../genericMediaTypes
 import std/[httpclient, xmltree]
 type
   HeaderTuple* = tuple[headers: HttpHeaders, defaultPage: string,
-    getStream: proc(this: Video): string {.nimcall.},
-    setStream: proc(this: Video): bool {.nimcall.},
+    getStream: proc(this: Video): HLSStream {.nimcall.},
     getMetaData: proc(this: Video): MetaData {.nimcall.},
     getEpisodeSequence: proc(this: Video): seq[MetaData] {.nimcall.},
     getHomeCarousel: proc(this: Video): seq[MetaData] {.nimcall.},
@@ -21,9 +20,8 @@ type
     currPage*: string
     hlsStream*: HLSStream
 
-    setStream: proc(this: Video): bool {.nimcall.}
     # Function for getting the base stream for Episode; this would, supposedly, be used for embedded video players.
-    getStream: proc(this: Video): string {.nimcall.}
+    getStream: proc(this: Video): HLSStream {.nimcall.}
     # Function for gathering MetaData object for Video.
     getMetaData: proc(this: Video): MetaData {.nimcall.}
     # Function for gathering list of related episodes.
@@ -38,7 +36,7 @@ type
     getNext: proc (this: Video): string {.nimcall.}
 
 # Wrappers for the functions.
-method getStream(this: Video): string =
+method getStream*(this: Video): HLSStream =
   return this.getStream(this)
 method getMetaData*(this: Video): MetaData =
   this.metaData = this.getMetaData(this)
@@ -49,10 +47,15 @@ method getHomeCarousel*(this: Video): seq[MetaData] =
   return this.getHomeCarousel(this)
 method searchDownloader*(this: Video, str: string): seq[MetaData] =
   return this.searchDownloader(this, str)
-method getNext(this: Video): string {.nimcall.} =
+method getNext*(this: Video): string {.nimcall.} =
   return this.getNext(this)
-method setStream(this: Video): bool {.nimcall.} =
-  return this.setStream(this)
-method Init(this: Video, hTupe: HeaderTuple) =
+method Init*(this: Video, hTupe: HeaderTuple) =
   this.ourClient = newHttpClient()
-  this.ourClient.headers = this.defaultHeaders
+  this.ourClient.headers = hTupe[0]
+  this.defaultPage =  hTupe[1]
+  this.defaultHeaders = hTupe[0]
+  this.getStream = hTupe[2]
+  this.getMetaData = hTupe[3]
+  this.getEpisodeSequence = hTupe[4]
+  this.getHomeCarousel = hTupe[5]
+  this.searchDownloader = hTupe[6]

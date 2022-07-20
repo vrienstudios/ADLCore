@@ -7,7 +7,7 @@ import VideoType
 # Please follow this layout for any additional sites.
 
 # Grab the HLS stream for the current video, and sets the stream property for VidStream
-proc SetHLSStream*(this: Video): bool {.nimcall.} =
+proc SetHLSStream*(this: Video): HLSStream {.nimcall.} =
     let streamingUri: string = "https:" & this.page.findAll("iframe")[0].attr("src")
     this.currPage = streamingUri
     this.page = parseHtml(this.ourClient.getContent(streamingUri))
@@ -103,7 +103,7 @@ proc SetHLSStream*(this: Video): bool {.nimcall.} =
     let uri = ima[5]
     let parts: seq[string] = (this.ourClient.getContent(uri)).split('\n')
     this.hlsStream = ParseManifest(parts)
-    return true
+    return this.hlsStream
 
 proc GetMetaData(this: Video): MetaData {.nimcall.} =
   if this.currPage != this.defaultPage:
@@ -121,7 +121,7 @@ proc GetMetaData(this: Video): MetaData {.nimcall.} =
   var videoDetail: XmlNode
   for divClass in videoInfoLeft.items:
     if divClass.kind == xnElement:
-      if title == nil and divClass.name == "h1":
+      if title == "" and divClass.tag == "h1":
         title = divClass.innerText
       elif divClass.attr("class") == "video-details":
         this.metaData.series = divClass.child("span").innerText
@@ -142,7 +142,7 @@ proc GetEpisodeMetaDataObject(this: XmlNode): MetaData {.nimcall.} =
         metaData.coverUri = divider.child("div").child("img").attr("src")
         break
       of "name":
-        metada.name = divider.innerText
+        metaData.name = divider.innerText
         break
       else:
         discard
@@ -160,8 +160,18 @@ proc GetEpisodeSequence(this: Video): seq[MetaData] {.nimcall.} =
       break
   return mDataSeq
 
+proc DownloadPartFromHLS(this: Video): string {.nimcall.} =
+  this.ourClient.headers = newHttpHeaders({
+      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:101.0) Gecko/20100101 Firefox/101.0",
+      "Referer": "https://gogoplay1.com/streaming.php",
+      "x-requested-with": "XMLHttpRequest",
+      "Accept": "*/*",
+      "Accept-Encoding": "identity",
+  })
+
+
 # Initialize the client and add default headers.
-proc Init*(this: Video, uri: string): HeaderTuple {.nimcall.} =
+proc Init*(uri: string): HeaderTuple {.nimcall.} =
     let defaultHeaders = newHttpHeaders({
         "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:101.0) Gecko/20100101 Firefox/101.0",
         "Referer": "https://gogoplay1.com",
@@ -173,8 +183,7 @@ proc Init*(this: Video, uri: string): HeaderTuple {.nimcall.} =
     })
     return (headers: defaultHeaders,
     defaultPage: uri,
-    getStream: nil,
-    setStream: SetHLSStream,
+    getStream: SetHLSStream,
     getMetaData: GetMetaData,
     getEpisodeSequence: GetEpisodeSequence,
     getHomeCarousel: nil,
