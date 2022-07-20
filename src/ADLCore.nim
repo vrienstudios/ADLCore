@@ -21,7 +21,16 @@ proc GenerateNewNovelInstance*(site: string, uri: string): Novel =
       discard
   assert novelObj != nil
   return novelObj
-
+proc GenerateNewVideoInstance*(site: string, uri: string): Video =
+  var aniObj: Video
+  case site:
+    of "vidstreamAni":
+      let hTup = VidStream.Init(uri)
+      aniObj = Video()
+      aniObj.Init(hTup)
+    else: discard
+  assert aniObj != nil
+  return aniObj
 # Modules Implementation Test
 #type
 #  initiatior = proc (str: string): HeaderTuple {.nimcall.}
