@@ -19,6 +19,7 @@ type
     defaultPage*: string
     currPage*: string
     hlsStream*: HLSStream
+    videoAudioStreams: array[2, HLSStream]
 
     # Function for getting the base stream for Episode; this would, supposedly, be used for embedded video players.
     getStream: proc(this: Video): HLSStream {.nimcall.}
