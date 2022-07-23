@@ -160,12 +160,40 @@ proc GetEpisodeSequence(this: Video): seq[MetaData] {.nimcall.} =
       break
   return mDataSeq
 
-proc ListResolutions(this: Video): seq[string] =
+proc ListResolutions(this: Video): seq[MediaStreamTuple] =
   var hlsBase = this.hlsStream
-  
-  return @[]
+  var medStream: seq[MediaStreamTuple] = @[]
+  var index: int = 0
+  for segment in hlsBase.parts:
+    if segment.header == "#EXT-X-MEDIA:":
+      var id: string
+      var language: string
+      var uri: string
+      for param in segment.values:
+        case param.key:
+          of "GROUP-ID": id = param.value
+          of "LANGUAGE": language = param.value
+          of "URI": uri = param.value
+          else: discard
+      medStream.add((id: id, resolution: "", uri: uri, language: language, isAudio: true, bandWidth: ""))
+    elif segment.header == "#EXT-X-STREAM-INF":
+      var bandwidth: string
+      var resolution: string
+      var id: string
+      var audioID: string
+      var uri: string
+      for param in segment.values:
+        case param.key:
+          of "BANDWIDTH": bandwidth = param.value
+          of "RESOLUTION": resolution = param.value
+          of "AUDIO": id = param.value
+          of "URI": uri = hlsBase.parts[index + 1]["URI"]
+          else: discard
+      medStream.add((id: id, resolution: resolution, uri: uri, language: "", isAudio: false, bandWidth: bandwidth))
+    inc index
+  return medStream
 
-proc DownloadNextPartFromHLS(this: Video): string {.nimcall.} =
+proc DownloadNextVideoPart(this: Video): string {.nimcall.} =
   this.ourClient.headers = newHttpHeaders({
       "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:101.0) Gecko/20100101 Firefox/101.0",
       "Referer": "https://gogoplay1.com/streaming.php",
@@ -174,6 +202,14 @@ proc DownloadNextPartFromHLS(this: Video): string {.nimcall.} =
       "Accept-Encoding": "identity",
   })
 
+proc DownloadNextAudioPart(this: Video): string {.nimcall.} =
+  this.ourClient.headers = newHttpHeaders({
+      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:101.0) Gecko/20100101 Firefox/101.0",
+      "Referer": "https://gogoplay1.com/streaming.php",
+      "x-requested-with": "XMLHttpRequest",
+      "Accept": "*/*",
+      "Accept-Encoding": "identity",
+  })
 
 # Initialize the client and add default headers.
 proc Init*(uri: string): HeaderTuple {.nimcall.} =

@@ -8,10 +8,8 @@ type
     getEpisodeSequence: proc(this: Video): seq[MetaData] {.nimcall.},
     getHomeCarousel: proc(this: Video): seq[MetaData] {.nimcall.},
     searchDownloader: proc(this: Video, str: string): seq[MetaData] {.nimcall.}]
+  MediaStreamTuple* = tuple[id: string, resolution: string, uri: string, language: string, isAudio: bool, bandWidth: string]
   Video* = ref object of RootObj
-    # This will be the byte buffer, which is used for mp4 downloads. 4096 was chosen, since we're mainly dealing with large video files.
-    # Does not impact HLS.
-    byteBuffer: array[4096, byte]
     ourClient*: HttpClient
     metaData*: MetaData
     page*: XmlNode
@@ -19,7 +17,10 @@ type
     defaultPage*: string
     currPage*: string
     hlsStream*: HLSStream
-    videoAudioStreams: array[2, HLSStream]
+    videoCurrIdx: int
+    videoStreams: seq[HLSStream]
+    audioCurrIdx: int
+    audioStreams: seq[HLSStream]
 
     # Function for getting the base stream for Episode; this would, supposedly, be used for embedded video players.
     getStream: proc(this: Video): HLSStream {.nimcall.}
