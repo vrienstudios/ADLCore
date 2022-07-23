@@ -1,6 +1,0 @@
-[submodule "nim-HLSManager"]
-	path = nim-HLSManager
-	url = https://github.com/ShujianDou/nim-HLSManager.git
-[submodule "nim-epub"]
-	path = nim-epub
-	url = https://github.com/ShujianDou/nim-epub.git

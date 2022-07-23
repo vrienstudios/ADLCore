@@ -163,7 +163,7 @@ proc GetEpisodeSequence(this: Video): seq[MetaData] {.nimcall.} =
 proc ListResolutions(this: Video): seq[string] =
   var hlsBase = this.hlsStream
   
-  return nil
+  return @[]
 
 proc DownloadNextPartFromHLS(this: Video): string {.nimcall.} =
   this.ourClient.headers = newHttpHeaders({
