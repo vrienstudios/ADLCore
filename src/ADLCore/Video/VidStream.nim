@@ -212,7 +212,7 @@ proc DownloadNextAudioPart(this: Video): string {.nimcall.} =
   })
 
 proc Search*(this: Video, str: string): seq[MetaData] {.nimcall.} =
-  let content: string = this.ourClient.getContent("https://gogoplay1.com/ajax-search.html?keyword=" & str & "&id=-1")
+  let content = this.ourClient.getContent("https://gogoplay1.com/ajax-search.html?keyword=" & str & "&id=-1")
   let json = parseJson(content)
   var results: seq[MetaData] = @[]
   this.page = parseHtml(json["content"].getStr())
