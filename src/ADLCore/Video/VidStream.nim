@@ -227,7 +227,7 @@ proc Search*(this: Video, str: string): seq[MetaData] {.nimcall.} =
   for a in this.page.findAll("a"):
     var data = MetaData()
     data.name = a.innerText
-    data.uri = a.attr("href")
+    data.uri = "https://gogoplay1.com" & a.attr("href")
     results.add(data)
   return results
     
