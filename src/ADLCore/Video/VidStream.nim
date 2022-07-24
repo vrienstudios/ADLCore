@@ -1,6 +1,6 @@
 import HLSManager
 import ../genericMediaTypes
-import std/[asyncdispatch, httpclient, htmlparser, xmltree, strutils, strtabs, parseutils, sequtils, base64]
+import std/[asyncdispatch, httpclient, htmlparser, xmltree, strutils, strtabs, parseutils, sequtils, base64, json]
 import nimcrypto
 import std/json
 import VideoType
@@ -211,6 +211,20 @@ proc DownloadNextAudioPart(this: Video): string {.nimcall.} =
       "Accept-Encoding": "identity",
   })
 
+proc Search*(this: Video, str: string): seq[MetaData] {.nimcall.} =
+  let content: string = this.ourClient.getContent("https://gogoplay1.com/ajax-search.html?keyword=" & str & "&id=-1")
+  let json = parseJson(content)
+  var results: seq[MetaData] = @[]
+  this.page = parseHtml(json["content"].getStr())
+  this.currPage = "https://gogoplay1.com"
+  for a in this.page.findAll("a"):
+    var data = MetaData()
+    data.name = a.innerText
+    data.uri = a.attr("href")
+    results.add(data)
+  return results
+    
+  
 # Initialize the client and add default headers.
 proc Init*(uri: string): HeaderTuple {.nimcall.} =
     let defaultHeaders = newHttpHeaders({
@@ -228,4 +242,4 @@ proc Init*(uri: string): HeaderTuple {.nimcall.} =
     getMetaData: GetMetaData,
     getEpisodeSequence: GetEpisodeSequence,
     getHomeCarousel: nil,
-    searchDownloader: nil,)
+    searchDownloader: Search,)
