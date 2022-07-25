@@ -1,6 +1,6 @@
 import HLSManager
 import ../genericMediaTypes
-import std/[asyncdispatch, httpclient, htmlparser, xmltree, strutils, strtabs, parseutils, sequtils, base64, json]
+import std/[os, asyncdispatch, httpclient, htmlparser, xmltree, strutils, strtabs, parseutils, sequtils, base64, json]
 import nimcrypto
 import std/json
 import VideoType
@@ -160,7 +160,7 @@ proc GetEpisodeSequence(this: Video): seq[MetaData] {.nimcall.} =
       break
   return mDataSeq
 
-proc ListResolutions(this: Video): seq[MediaStreamTuple] =
+proc ListResolutions(this: Video): seq[MediaStreamTuple] {.nimcall.} =
   var hlsBase = this.hlsStream
   var medStream: seq[MediaStreamTuple] = @[]
   var index: int = 0
@@ -193,7 +193,7 @@ proc ListResolutions(this: Video): seq[MediaStreamTuple] =
     inc index
   return medStream
 
-proc DownloadNextVideoPart(this: Video): string {.nimcall.} =
+proc DownloadNextVideoPart(this: Video, path: string): bool {.nimcall.} =
   this.ourClient.headers = newHttpHeaders({
       "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:101.0) Gecko/20100101 Firefox/101.0",
       "Referer": "https://gogoplay1.com/streaming.php",
@@ -201,8 +201,20 @@ proc DownloadNextVideoPart(this: Video): string {.nimcall.} =
       "Accept": "*/*",
       "Accept-Encoding": "identity",
   })
+  if this.videoCurrIdx >= this.videoStream.len:
+    return false
+  var file: File
+  if fileExists(path):
+    file = open(path, fmAppend)
+  else:
+    file = open(path, fmWrite)
+  let videoData = this.ourClient.getContent(this.videoStream[this.videoCurrIdx])
+  write(file, videoData)
+  inc this.videoCurrIdx
+  close(file)
+  return true
 
-proc DownloadNextAudioPart(this: Video): string {.nimcall.} =
+proc DownloadNextAudioPart(this: Video, path: string): bool {.nimcall.} =
   this.ourClient.headers = newHttpHeaders({
       "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:101.0) Gecko/20100101 Firefox/101.0",
       "Referer": "https://gogoplay1.com/streaming.php",
@@ -210,15 +222,21 @@ proc DownloadNextAudioPart(this: Video): string {.nimcall.} =
       "Accept": "*/*",
       "Accept-Encoding": "identity",
   })
+  if this.audioCurrIdx >= this.audioStream.len:
+    return false
+  var file: File
+  if fileExists(path):
+    file = open(path, fmAppend)
+  else:
+    file = open(path, fmWrite)
+  let audioData = this.ourClient.getContent(this.audioStream[this.audioCurrIdx])
+  write(file, audioData)
+  inc this.audioCurrIdx
+  close(file)
+  return true
 
 proc Search*(this: Video, str: string): seq[MetaData] {.nimcall.} =
-  this.ourClient.headers = newHttpHeaders({
-        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:101.0) Gecko/20100101 Firefox/101.0",
-        "Referer": "https://gogoplay1.com/streaming.php",
-        "x-requested-with": "XMLHttpRequest",
-        "Accept": "*/*",
-        "Accept-Encoding": "identity",
-  })
+  this.ourClient.headers = this.defaultHeaders
   let content = this.ourClient.getContent("https://gogoplay1.com/ajax-search.html?keyword=" & str & "&id=-1")
   let json = parseJson(content)
   var results: seq[MetaData] = @[]
@@ -230,8 +248,23 @@ proc Search*(this: Video, str: string): seq[MetaData] {.nimcall.} =
     data.uri = "https://gogoplay1.com" & a.attr("href")
     results.add(data)
   return results
-    
-  
+
+proc SelectResolutionFromTuple(this: Video, tul: MediaStreamTuple) {.nimcall.} =
+  var vManifest = ParseManifest(splitLines(this.ourClient.getContent(tul.uri)))
+  var vSeq: seq[string] = @[]
+  for part in vManifest.parts:
+    vSeq.add(part.values[0].value)
+  this.videoStream = vSeq
+  for stream in this.mediaStreams:
+    if stream.id == tul.id:
+      var aManifest = ParseManifest(splitLines(this.ourClient.getContent(stream.uri)))
+      var aSeq: seq[string] = @[]
+      for part in aManifest.parts:
+        aSeq.add(part.values[0].value)
+      this.audioStream = aSeq
+      break
+proc getHomeCarousel(this: Video): seq[MetaData] {.nimcall.} =
+  return @[]
 # Initialize the client and add default headers.
 proc Init*(uri: string): HeaderTuple {.nimcall.} =
     let defaultHeaders = newHttpHeaders({
@@ -249,4 +282,8 @@ proc Init*(uri: string): HeaderTuple {.nimcall.} =
     getMetaData: GetMetaData,
     getEpisodeSequence: GetEpisodeSequence,
     getHomeCarousel: nil,
-    searchDownloader: Search,)
+    searchDownloader: Search,
+    selResolution: SelectResolutionFromTuple,
+    listResolution: ListResolutions,
+    downloadNextVideoPart: DownloadNextVideoPart,
+    downloadNextAudioPart: DownloadNextAudioPart)
