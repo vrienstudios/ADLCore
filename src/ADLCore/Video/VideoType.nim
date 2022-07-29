@@ -52,6 +52,14 @@ type
 # Wrappers for the functions.
 method getStream*(this: Video): HLSStream =
   return this.getStream(this)
+method listResolution*(this: Video): seq[MediaStreamTuple] =
+  return this.listResolution(this)
+method selResolution*(this: Video, tul: MediaStreamTuple) =
+  this.selResolution(this, tul)
+method downloadNextVideoPart*(this: Video, path: string): bool =
+  return this.downloadNextVideoPart(this, path)
+method downloadNextAudioPart*(this: Video, path: string): bool =
+  return this.downloadNextAudioPart(this, path)
 method getMetaData*(this: Video): MetaData =
   this.metaData = this.getMetaData(this)
   return this.metaData
