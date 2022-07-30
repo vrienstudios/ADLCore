@@ -106,6 +106,7 @@ proc SetHLSStream*(this: Video): HLSStream {.nimcall.} =
     return this.hlsStream
 
 proc GetMetaData(this: Video): MetaData {.nimcall.} =
+  this.metaData = MetaData()
   if this.currPage != this.defaultPage:
     this.ourClient.headers = this.defaultHeaders
     this.page = parseHtml(this.ourClient.getContent(this.defaultPage))
@@ -117,15 +118,16 @@ proc GetMetaData(this: Video): MetaData {.nimcall.} =
       break
   assert videoInfoLeft != nil
   # The title of the anime is the first <h1> tag within video-info-left
-  var title: string
-  var videoDetail: XmlNode
   for divClass in videoInfoLeft.items:
     if divClass.kind == xnElement:
-      if title == "" and divClass.tag == "h1":
-        title = divClass.innerText
+      if this.metaData.name == "" and divClass.tag == "h1":
+        this.metaData.name = divClass.innerText
       elif divClass.attr("class") == "video-details":
         this.metaData.series = divClass.child("span").innerText
-        this.metaData.description = divclass.child("div").innerText
+        for i in divClass.items:
+          if i.kind == xnElement:
+            if i.attr("class") == "post-entry":
+              this.metaData.description = i.child("div").innerText
         break
   return this.metaData
 
