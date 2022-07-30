@@ -164,7 +164,6 @@ proc ListResolutions(this: Video): seq[MediaStreamTuple] {.nimcall.} =
   var medStream: seq[MediaStreamTuple] = @[]
   var index: int = 0
   for segment in hlsBase.parts:
-    echo segment.header
     if segment.header == "#EXT-X-MEDIA:":
       var id: string
       var language: string
@@ -173,22 +172,22 @@ proc ListResolutions(this: Video): seq[MediaStreamTuple] {.nimcall.} =
         case param.key:
           of "GROUP-ID": id = param.value
           of "LANGUAGE": language = param.value
-          of "URI": uri = param.value
+          of "URI":
+            uri = param.value
           else: discard
       medStream.add((id: id, resolution: "", uri: uri, language: language, isAudio: true, bandWidth: ""))
     elif segment.header == "#EXT-X-STREAM-INF:":
       var bandwidth: string
       var resolution: string
       var id: string
-      var audioID: string
       var uri: string
       for param in segment.values:
         case param.key:
           of "BANDWIDTH": bandwidth = param.value
           of "RESOLUTION": resolution = param.value
           of "AUDIO": id = param.value
-          of "URI": uri = hlsBase.parts[index + 1]["URI"]
           else: discard
+      uri = hlsBase.parts[index + 1]["URI"]
       medStream.add((id: id, resolution: resolution, uri: uri, language: "", isAudio: false, bandWidth: bandwidth))
     inc index
   return medStream
@@ -201,6 +200,7 @@ proc DownloadNextVideoPart(this: Video, path: string): bool {.nimcall.} =
       "Accept": "*/*",
       "Accept-Encoding": "identity",
   })
+  echo this.videoStream[this.videoCurrIdx]
   if this.videoCurrIdx >= this.videoStream.len:
     return false
   var file: File
@@ -250,14 +250,15 @@ proc Search*(this: Video, str: string): seq[MetaData] {.nimcall.} =
   return results
 
 proc SelectResolutionFromTuple(this: Video, tul: MediaStreamTuple) {.nimcall.} =
-  var vManifest = ParseManifest(splitLines(this.ourClient.getContent(tul.uri)))
+  var vManifest = ParseManifest(splitLines(this.ourClient.getContent(tul.uri)), this.hlsStream.baseUri)
   var vSeq: seq[string] = @[]
   for part in vManifest.parts:
-    vSeq.add(part.values[0].value)
+    if part.header == "URI":
+      vSeq.add(part.values[0].value)
   this.videoStream = vSeq
   for stream in this.mediaStreams:
     if stream.id == tul.id:
-      var aManifest = ParseManifest(splitLines(this.ourClient.getContent(stream.uri)))
+      var aManifest = ParseManifest(splitLines(this.ourClient.getContent(stream.uri)), this.hlsStream.baseUri)
       var aSeq: seq[string] = @[]
       for part in aManifest.parts:
         aSeq.add(part.values[0].value)
