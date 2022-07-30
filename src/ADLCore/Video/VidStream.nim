@@ -102,7 +102,7 @@ proc SetHLSStream*(this: Video): HLSStream {.nimcall.} =
     let ima = decVideoData.split('"')
     let uri = ima[5]
     let parts: seq[string] = (this.ourClient.getContent(uri)).split('\n')
-    this.hlsStream = ParseManifest(parts)
+    this.hlsStream = ParseManifest(parts, uri[0 .. ^(uri.split('/')[^1].len + 1)])
     return this.hlsStream
 
 proc GetMetaData(this: Video): MetaData {.nimcall.} =
@@ -124,10 +124,7 @@ proc GetMetaData(this: Video): MetaData {.nimcall.} =
         this.metaData.name = divClass.innerText
       elif divClass.attr("class") == "video-details":
         this.metaData.series = divClass.child("span").innerText
-        for i in divClass.items:
-          if i.kind == xnElement:
-            if i.attr("class") == "post-entry":
-              this.metaData.description = i.child("div").innerText
+        this.metaData.description = divclass.child("div").child("div").innerText
         break
   return this.metaData
 
@@ -167,6 +164,7 @@ proc ListResolutions(this: Video): seq[MediaStreamTuple] {.nimcall.} =
   var medStream: seq[MediaStreamTuple] = @[]
   var index: int = 0
   for segment in hlsBase.parts:
+    echo segment.header
     if segment.header == "#EXT-X-MEDIA:":
       var id: string
       var language: string
@@ -178,7 +176,7 @@ proc ListResolutions(this: Video): seq[MediaStreamTuple] {.nimcall.} =
           of "URI": uri = param.value
           else: discard
       medStream.add((id: id, resolution: "", uri: uri, language: language, isAudio: true, bandWidth: ""))
-    elif segment.header == "#EXT-X-STREAM-INF":
+    elif segment.header == "#EXT-X-STREAM-INF:":
       var bandwidth: string
       var resolution: string
       var id: string
