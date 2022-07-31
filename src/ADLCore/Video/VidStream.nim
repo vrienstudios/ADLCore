@@ -236,7 +236,13 @@ proc DownloadNextAudioPart(this: Video, path: string): bool {.nimcall.} =
   return true
 
 proc Search*(this: Video, str: string): seq[MetaData] {.nimcall.} =
-  this.ourClient.headers = this.defaultHeaders
+  this.ourClient.headers = newHttpHeaders({
+        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:101.0) Gecko/20100101 Firefox/101.0",
+        "Referer": "https://gogoplay1.com/",
+        "x-requested-with": "XMLHttpRequest",
+        "Accept": "*/*",
+        "Accept-Encoding": "identity",
+  })
   let content = this.ourClient.getContent("https://gogoplay1.com/ajax-search.html?keyword=" & str & "&id=-1")
   let json = parseJson(content)
   var results: seq[MetaData] = @[]
