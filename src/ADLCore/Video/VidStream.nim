@@ -121,27 +121,27 @@ proc GetMetaData(this: Video): MetaData {.nimcall.} =
   for divClass in videoInfoLeft.items:
     if divClass.kind == xnElement:
       if this.metaData.name == "" and divClass.tag == "h1":
-        this.metaData.name = divClass.innerText
+        this.metaData.name = sanitizeString(divClass.innerText)
       elif divClass.attr("class") == "video-details":
-        this.metaData.series = divClass.child("span").innerText
-        this.metaData.description = divclass.child("div").child("div").innerText
+        this.metaData.series = sanitizeString(divClass.child("span").innerText)
+        this.metaData.description = sanitizeString(divclass.child("div").child("div").innerText)
         break
   return this.metaData
 
 proc GetEpisodeMetaDataObject(this: XmlNode): MetaData {.nimcall.} =
   var metaData: MetaData = MetaData()
   let node = this.child("a")
-  metaData.uri = node.attr("href")
+  metaData.uri = sanitizeString(node.attr("href"))
   # OM MY GOD, WHY
   for divider in node.items:
     if divider.kind != xnElement:
       continue
     case divider.attr("class"):
       of "img":
-        metaData.coverUri = divider.child("div").child("img").attr("src")
+        metaData.coverUri = sanitizeString(divider.child("div").child("img").attr("src"))
         break
       of "name":
-        metaData.name = divider.innerText
+        metaData.name = sanitizeString(divider.innerText)
         break
       else:
         discard

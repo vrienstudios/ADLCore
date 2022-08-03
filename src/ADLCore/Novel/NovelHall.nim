@@ -33,7 +33,7 @@ proc GetMetaData*(this: Novel): MetaData {.nimcall,exportc,dynlib.} =
         if bookEl.attr("class") == "book-img hidden-xs":
           cMetaData.coverUri = bookEl.child("img").attr("src")
         elif bookEl.attr("class") == "book-info":
-          cMetaData.name = bookEl.child("h1").innerText
+          cMetaData.name = sanitizeString(bookEl.child("h1").innerText)
           for bookInfoEl in bookEl.items:
             if bookInfoEl.kind != xnElement:
               continue
@@ -53,6 +53,7 @@ proc GetMetaData*(this: Novel): MetaData {.nimcall,exportc,dynlib.} =
                     while i < len(mString) - 1:
                       cMetaData.author[i] = mString[i]
                       inc i
+                    cMetaData.author = sanitizeString(cMetaData.author)
                   elif bookTagEl.innerText.contains("Status"):
                     let mString = bookTagEl.innerText
                     # NIM hack, since it doesn't play well with full-width semicolon literal.
@@ -63,11 +64,11 @@ proc GetMetaData*(this: Novel): MetaData {.nimcall,exportc,dynlib.} =
                       k[d] = mString[i]
                       inc i
                       inc d
-                    cMetaData.statusType = parseEnum[Status](k)
+                    cMetaData.statusType = parseEnum[Status](sanitizeString(k))
             of "intro":
               let seqNodes: seq[XmlNode] = bookInfoEl.items.toSeq()
               let interest = seqNodes[len(seqNodes) - 1]
-              cMetaData.description = interest.items.toSeq()[0].innerText
+              cMetaData.description = sanitizeString(interest.items.toSeq()[0].innerText)
               return cMetaData
               # No need to continue iteration after getting final element.
             else:
@@ -92,7 +93,7 @@ proc GetChapterSequence*(this: Novel): seq[Chapter] {.nimcall,exportc,dynlib.} =
                             if textEl.kind == xnElement and textEl.tag == "li":
                                 #FINALLY
                                 let child: XmlNode = textEl.child("a")
-                                chapters.add(Chapter(name: child.innerText, uri: "https://www.novelhall.com" & child.attr("href")))
+                                chapters.add(Chapter(name: sanitizeString(child.innerText), uri: "https://www.novelhall.com" & child.attr("href")))
                         return chapters
 
 proc ParseCarouselNodeToNovel(node: XmlNode): MetaData {.nimcall,exportc,dynlib.} =
