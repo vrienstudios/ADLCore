@@ -37,8 +37,14 @@ proc listResolutions*(this: Video): seq[MediaStreamTuple] =
       resolution: resolution["width"] & "x" & resolution["height"]))
   return medStreams
 
-proc selResolution*(this: Video, tul: MediaStreamTuple =
-  return # TODO
+proc selResolution*(this: Video, tul: MediaStreamTuple) =
+  var vManifest = ParseManifest(splitLines(this.ourClient.getContent(tul.uri)))
+  var vSeq: seq[string] = @[]
+  for parts in vManifest.parts:
+    if part.header == "URI":
+      vSeq.add(part.values[0].value)
+  this.videoStream = vSeq
+  # No Audio Streams
 
 proc Init*(uri: string): HeaderTuple =
   let defHeaders = newHttpHeaders({
