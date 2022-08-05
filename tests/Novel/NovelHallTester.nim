@@ -16,4 +16,4 @@ suite "Novel/NovelHall":
     echo "Status: " & $novelObj.metaData.statusType
     check novelObj.metaData.name == "Number One Lazy Merchant of the Beast World"
     check len(novelObj.metaData.description) > 0
-    check novelObj.metaData.statusType == Status.Complete
+    check novelObj.metaData.statusType == Status.Completed

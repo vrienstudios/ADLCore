@@ -1,7 +1,7 @@
 import std/strutils
 type
     Status* {.pure.} = enum
-        Active = "Active", Hiatus, Dropped, Complete
+        Active = "Active", Hiatus = "Hiatus", Dropped = "Dropped", Completed = "Completed"
     LanguageType* = enum
         original, translated, machine, mix, unknown
     MetaData* = ref object of RootObj
