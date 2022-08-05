@@ -1,6 +1,6 @@
-import ADLCore, ADLCore/Novel/NovelTypes, ADLCore/Novel/NovelHall
+import ADLCore
 import ADLCore/Video/VideoType, ADLCore/Video/VidStream, ADLCore/genericMediaTypes
-import unittest, std/[os, terminal, strutils]
+import unittest, std/[os, strutils]
 
 suite "Video/VidStream":
   var videoObj: Video
