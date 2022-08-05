@@ -6,7 +6,7 @@ suite "Novel/NovelHall":
   var novelObj: Novel
   test "Can generate novelObj":
     novelObj = GenerateNewNovelInstance("NovelHall", "https://www.novelhall.com/number-one-lazy-merchant-of-the-beast-world-13138/")
-  test "MetaData object for Cruel Young Master, Don't Love Me is correct":
+  test "MetaData object for Number One Lazy Merchant of the Beast World is correct":
     discard novelObj.getMetaData()
     echo "Name: " & novelObj.metaData.name
     # author is probably escaped so it's empty
