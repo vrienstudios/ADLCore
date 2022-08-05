@@ -6,6 +6,10 @@ description   = "Novel, Video, and Anime scraper"
 license       = "Proprietary"
 srcDir        = "src"
 
+# Tasks
+task test, "Test ADLCore Functionality":
+  withDir "tests":
+    exec "nim c -d:ssl -r tester"
 
 # Dependencies
 
