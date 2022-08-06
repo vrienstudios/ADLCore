@@ -200,7 +200,6 @@ proc DownloadNextVideoPart(this: Video, path: string): bool {.nimcall.} =
       "Accept": "*/*",
       "Accept-Encoding": "identity",
   })
-  echo this.videoStream[this.videoCurrIdx]
   if this.videoCurrIdx >= this.videoStream.len:
     return false
   var file: File

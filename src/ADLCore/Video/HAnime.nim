@@ -25,6 +25,9 @@ proc GetMetaData*(this: Video): MetaData =
   this.metaData.uri = "www.hanime.tv/" & data["slug"].getStr()
   return this.metaData
 
+proc GetStreamStub*(this: Video): HLSStream =
+  return this.hlsStream
+
 proc listResolutions*(this: Video): seq[MediaStreamTuple] =
   # We will continue to refrain from exploiting their API to provide 1080P content.
   # Again, buy HAnime premiun, if you wish to watch or download 1080P content.
@@ -33,18 +36,40 @@ proc listResolutions*(this: Video): seq[MediaStreamTuple] =
   assert jContent != nil
   let servers = jContent["videos_manifest"]["servers"][1..^1]
   for resolution in servers:
-    medStreams.add(MediaStreamTuple(id: resolution["id"], uri: resolution["url"],
-      resolution: resolution["width"] & "x" & resolution["height"]))
+    medStreams.add((id: resolution["id"].getStr(), resolution: resolution["width"].getStr() & "x" & resolution["height"].getStr(),
+    uri: resolution["url"].getStr(), language: "english",
+      isAudio: false, bandWidth: "unknown"))
   return medStreams
 
 proc selResolution*(this: Video, tul: MediaStreamTuple) =
   var vManifest = ParseManifest(splitLines(this.ourClient.getContent(tul.uri)))
   var vSeq: seq[string] = @[]
-  for parts in vManifest.parts:
+  aesKey = this.ourClient.getContent("https://hanime.tv/sign.bin")
+  for part in vManifest.parts:
     if part.header == "URI":
       vSeq.add(part.values[0].value)
   this.videoStream = vSeq
   # No Audio Streams
+
+# https://www.youtube.com/watch?v=XCrjEPjJp18
+proc downloadNextVideoPart*(this: Video, path: string): bool =
+  var dContext: CBC[aes256]
+  let encContent = this.ourClient.getContent(this.videoStream[this.videoCurrIdx])
+  dContext.init(aesKey, $this.videoCurrIdx)
+  var dContent: string = ""
+  dContext.decrypt(encContent, dContent)
+  dContext.clear()
+  if this.videoCurrIdx >= this.videoStream.len:
+    return false
+  var file: File
+  if fileExists(path):
+    file = open(path, fmAppend)
+  else:
+    file = open(path, fmWrite)
+  write(file, dContent)
+  inc this.videoCurrIdx
+  close(file)
+  return true
 
 proc Init*(uri: string): HeaderTuple =
   let defHeaders = newHttpHeaders({
