@@ -1,5 +1,6 @@
 import ./ADLCore/Novel/NovelTypes
 import ./ADLCore/Novel/NovelHall
+import ./ADLCore/Novel/MangaKakalot
 import ./ADLCore/Novel/test
 import ./ADLCore/Video/VidStream, ./ADLCore/Video/VideoType
 import std/[asyncdispatch, strutils, dynlib]
@@ -15,6 +16,10 @@ proc GenerateNewNovelInstance*(site: string, uri: string): Novel =
   case site:
     of "NovelHall":
       let hTuple = NovelHall.Init(uri)
+      novelObj = Novel()
+      novelObj.Init(hTuple)
+    of "MangaKakalot":
+      let hTuple = MangaKakalot.Init(uri)
       novelObj = Novel()
       novelObj.Init(hTuple)
     else:
