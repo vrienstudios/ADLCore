@@ -83,13 +83,13 @@ proc Init*(uri: string): HeaderTuple =
   })
   return (headers: defHeaders,
     defaultPage: uri,
-    getStream: nil,
-    getMetaData: nil,
+    getStream: GetStreamStub,
+    getMetaData: GetMetaData,
     getEpisodeSequence: nil,
     getHomeCarousel: nil,
     searchDownloader: nil,
-    selResolution: nil,
-    listResolution: nil,
-    downloadNextVideoPart: nil,
+    selResolution: selResolution,
+    listResolution: listResolutions,
+    downloadNextVideoPart: downloadNextVideoPart,
     downloadNextAudioPart: nil
   )
