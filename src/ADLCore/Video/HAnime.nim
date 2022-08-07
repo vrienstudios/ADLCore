@@ -14,34 +14,40 @@ proc GetMetaData*(this: Video): MetaData =
     this.ourClient.headers = this.defaultHeaders
     this.page = parseHtml(this.ourClient.getContent(this.defaultPage))
     this.currPage = this.defaultPage
-  let jsonData = this.page.findAll("script")[0].innerText
+  let scripts = this.page.findAll("script")
+  var jsonData: string
+  for script in scripts:
+    if script.innerText.contains("__NUXT__"):
+      jsonData = script.innerText[16..^2]
   let jsonObject = parseJson(jsonData)
-  let data = jsonObject["data"]["video"]["hentai_video"]
+  #let data = jsonObject["data"].getElems["video"]["hentai_video"]
+  let data = jsonObject["state"]["data"]["video"]
   jContent = data
-  this.metaData.name = data["name"].getStr()
-  this.metaData.description = parseHtml(data["description"].getStr()).innerText
-  this.metaData.author = data["brand"].getStr()
-  this.metaData.coverUri = data["cover_url"].getStr()
-  this.metaData.uri = "www.hanime.tv/" & data["slug"].getStr()
+  let mdat = data["hentai_video"]
+  this.metaData.name = mdat["name"].getStr()
+  this.metaData.description = parseHtml(mdat["description"].getStr()).innerText
+  this.metaData.author = mdat["brand"].getStr()
+  this.metaData.coverUri = mdat["cover_url"].getStr()
+  this.metaData.uri = "www.hanime.tv/" & mdat["slug"].getStr()
   return this.metaData
 
 proc GetStreamStub*(this: Video): HLSStream =
   return this.hlsStream
 
-proc listResolutions*(this: Video): seq[MediaStreamTuple] =
+proc listEResolutions*(this: Video): seq[MediaStreamTuple] =
   # We will continue to refrain from exploiting their API to provide 1080P content.
   # Again, buy HAnime premiun, if you wish to watch or download 1080P content.
   # Or wait until we implement torrents; not gonna waste he bandwidth of HAnime.
   var medStreams: seq[MediaStreamTuple] = @[]
   assert jContent != nil
-  let servers = jContent["videos_manifest"]["servers"][1..^1]
-  for resolution in servers:
-    medStreams.add((id: resolution["id"].getStr(), resolution: resolution["width"].getStr() & "x" & resolution["height"].getStr(),
+  let servers = jContent["videos_manifest"]["servers"]
+  for resolution in servers.getElems()[0]["streams"].getElems():
+    medStreams.add((id: $resolution["id"].getInt(), resolution: $resolution["width"].getInt() & "x" & resolution["height"].getStr(),
     uri: resolution["url"].getStr(), language: "english",
       isAudio: false, bandWidth: "unknown"))
   return medStreams
 
-proc selResolution*(this: Video, tul: MediaStreamTuple) =
+proc selEResolution*(this: Video, tul: MediaStreamTuple) {.nimcall.} =
   var vManifest = ParseManifest(splitLines(this.ourClient.getContent(tul.uri)))
   var vSeq: seq[string] = @[]
   aesKey = this.ourClient.getContent("https://hanime.tv/sign.bin")
@@ -52,11 +58,14 @@ proc selResolution*(this: Video, tul: MediaStreamTuple) =
   # No Audio Streams
 
 # https://www.youtube.com/watch?v=XCrjEPjJp18
-proc downloadNextVideoPart*(this: Video, path: string): bool =
-  var dContext: CBC[aes256]
+proc DownloadNextVideoPart*(this: Video, path: string): bool =
+  var dContext: CBC[aes128]
   let encContent = this.ourClient.getContent(this.videoStream[this.videoCurrIdx])
-  dContext.init(aesKey, $this.videoCurrIdx)
-  var dContent: string = ""
+  let cIdx = $(this.videoCurrIdx + 1)
+  let iv: string = newString(aes128.sizeBlock)
+  copyMem(unsafeAddr iv[0], unsafeAddr cIdx[0], len(cIdx))
+  dContext.init(aesKey, iv)
+  var dContent: string = newString(encContent.len)
   dContext.decrypt(encContent, dContent)
   dContext.clear()
   if this.videoCurrIdx >= this.videoStream.len:
@@ -88,8 +97,8 @@ proc Init*(uri: string): HeaderTuple =
     getEpisodeSequence: nil,
     getHomeCarousel: nil,
     searchDownloader: nil,
-    selResolution: selResolution,
-    listResolution: listResolutions,
-    downloadNextVideoPart: downloadNextVideoPart,
+    selResolution: selEResolution,
+    listResolution: listEResolutions,
+    downloadNextVideoPart: DownloadNextVideoPart,
     downloadNextAudioPart: nil
   )
