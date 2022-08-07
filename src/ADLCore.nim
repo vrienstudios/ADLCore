@@ -10,7 +10,7 @@ proc onProgressChanged(total, progress, speed: BiggestInt) {.async,cdecl.} =
     echo("Downloaded ", progress, " of ", total)
     echo("Rate: ", speed, "b/s")
 
-proc GenerateNewNovelInstance*(site: string, uri: string): Novel =
+proc GenerateNewNovelInstance*(site: string, uri: string): Novel {.exportc,dynlib.} =
   var novelObj: Novel
   case site:
     of "NovelHall":
