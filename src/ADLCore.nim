@@ -1,7 +1,7 @@
 import ./ADLCore/Novel/NovelTypes
 import ./ADLCore/Novel/NovelHall
 import ./ADLCore/Novel/test
-import ./ADLCore/Video/VidStream, ./ADLCore/Video/VideoType
+import ./ADLCore/Video/VidStream, ./ADLCore/Video/VideoType, ./ADLCore/Video/HAnime
 import std/[asyncdispatch, strutils, dynlib]
 import ./ADLCore/genericMediaTypes
 import EPUB
@@ -10,7 +10,7 @@ proc onProgressChanged(total, progress, speed: BiggestInt) {.async,cdecl.} =
     echo("Downloaded ", progress, " of ", total)
     echo("Rate: ", speed, "b/s")
 
-proc GenerateNewNovelInstance*(site: string, uri: string): Novel =
+proc GenerateNewNovelInstance*(site: string, uri: string): Novel {.exportc,dynlib.} =
   var novelObj: Novel
   case site:
     of "NovelHall":
@@ -26,6 +26,10 @@ proc GenerateNewVideoInstance*(site: string, uri: string): Video =
   case site:
     of "vidstreamAni":
       let hTup = VidStream.Init(uri)
+      aniObj = Video()
+      aniObj.Init(hTup)
+    of "HAnime":
+      let hTup = HAnime.Init(uri)
       aniObj = Video()
       aniObj.Init(hTup)
     else: discard
