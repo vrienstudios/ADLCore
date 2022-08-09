@@ -65,11 +65,16 @@ proc GetChapterSequence*(this: Novel): seq[Chapter] {.nimcall.} =
       this.ourClient.headers = this.defaultHeaders
       this.page = parseHtml(this.ourClient.getContent(this.defaultPage))
       this.currPage = this.defaultPage
-    for el in this.page.findAll("div"):
+    
+    var divs: seq[XmlNode] = this.page.findAll("div")
+    var i = divs.len - 1
+    while i > 0:
+      var el = divs[i]
       if el.kind != xnElement: continue
       if el.attr("class") == "row":
         let chapterA = el[1][0]
         chapters.add(Chapter(name: chapterA.innerText, uri: chapterA.attr("href")))
+      dec i
     return chapters
 
 proc GetHomePage*(this: Novel): seq[Novel] =
