@@ -1,6 +1,6 @@
 import ./ADLCore/Novel/NovelTypes
 import ./ADLCore/Novel/NovelHall
-import ./ADLCore/Video/VidStream, ./ADLCore/Video/VideoType, ./ADLCore/Video/HAnime
+import ./ADLCore/Video/VidStream, ./ADLCore/Video/VideoType, ./ADLCore/Video/HAnime, ./ADLCore/Novel/MangaKakalot
 import std/[asyncdispatch, strutils, dynlib]
 import ./ADLCore/genericMediaTypes
 import EPUB
@@ -14,6 +14,10 @@ proc GenerateNewNovelInstance*(site: string, uri: string): Novel {.exportc,dynli
   case site:
     of "NovelHall":
       let hTuple = NovelHall.Init(uri)
+      novelObj = Novel()
+      novelObj.Init(hTuple)
+    of "MangaKakalot":
+      let hTuple = MangaKakalot.Init(uri)
       novelObj = Novel()
       novelObj.Init(hTuple)
     else:
