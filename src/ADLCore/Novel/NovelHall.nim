@@ -4,8 +4,8 @@ import EPUB/Types/genericTypes
 import std/[httpclient, htmlparser, xmltree, strutils, strtabs, parseutils, sequtils]
 
 # Please follow this layout for any additional sites.
-proc GetNodes*(this: Novel, chapter: Chapter): seq[TiNode] {.nimcall.} =
-    echo chapter.uri
+
+proc GetNodes(this: Novel, chapter: Chapter): seq[TiNode] {.nimcall.} =
     let ret: string = this.ourClient.getContent(chapter.uri)
     this.currPage = chapter.uri
     this.page = parseHtml(ret)
