@@ -16,6 +16,10 @@ proc GenerateNewNovelInstance*(site: string, uri: string): Novel {.exportc,dynli
       let hTuple = NovelHall.Init(uri)
       novelObj = Novel()
       novelObj.Init(hTuple)
+    of "MangaKakalot":
+      let hTuple = MangaKakalot.Init(uri)
+      novelObj = Novel()
+      novelObj.Init(hTuple)
     else:
       discard
   assert novelObj != nil
