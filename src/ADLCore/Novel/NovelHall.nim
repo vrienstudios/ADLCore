@@ -5,7 +5,6 @@ import std/[httpclient, htmlparser, xmltree, strutils, strtabs, parseutils, sequ
 
 # Please follow this layout for any additional sites.
 proc GetNodes(this: Novel, chapter: Chapter): seq[TiNode] {.nimcall,exportc,dynlib.} =
-    echo chapter.uri
     let ret: string = this.ourClient.getContent(chapter.uri)
     this.currPage = chapter.uri
     this.page = parseHtml(ret)
