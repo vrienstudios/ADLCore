@@ -1,0 +1,25 @@
+on:
+  push:
+    branches: [master, tests]
+  pull_request:
+    # The branches below must be a subset of the branches above
+    branches: [master]
+  schedule:
+    - cron: '0 6 * * 6'
+    
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: jiro4989/setup-nim-action@v1
+        with:
+          nim-version: stable # default is 'stable'
+      - run: git clone https://github.com/ShujianDou/nim-epub.git
+      - working-directory: nim-epub
+        run: nimble install -Y
+      - run: git clone https://github.com/ShujianDou/nim-HLSManager.git
+      - working-directory: nim-HLSManager
+        run: nimble install -Y
+      - run: nimble install -Y
+      - run: nimble test

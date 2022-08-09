@@ -58,9 +58,9 @@ proc GetMetaData*(this: Novel): MetaData {.nimcall,exportc,dynlib.} =
                     # NIM hack, since it doesn't play well with full-width semicolon literal.
                     var i: int = skipUntil(bookTagEl.innerText, "："[0]) + 3
                     var d: int = 0
-                    var k = newString(6)
+                    var k = ""
                     while i < len(mString):
-                      k[d] = mString[i]
+                      k.add(mString[i])
                       inc i
                       inc d
                     cMetaData.statusType = parseEnum[Status](sanitizeString(k))
