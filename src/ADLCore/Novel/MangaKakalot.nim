@@ -5,8 +5,30 @@ import std/[httpclient, htmlparser, xmltree, strutils, strtabs, parseutils, sequ
 
 # Please follow this layout for any additional sites.
 proc GetNodes*(this: Novel, chapter: Chapter): seq[TiNode] =
-    var f: seq[TiNode]
-    return f
+  var nodes: seq[TiNode]
+  var images: seq[Image]
+  this.ourClient.headers = newHttpHeaders({
+    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:101.0) Gecko/20100101 Firefox/101.0",
+    "Referer": this.defaultPage,
+    "Host": "mangakakalot.com",
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,application/json,*/*;q=0.8"
+  })
+  this.page = parseHtml(this.ourClient.getContent(chapter.uri))
+  for img in this.page.findAll("img"):
+    if img.kind != xnElement: continue
+    if img.attr("title").endsWith("Mangakakalot.com"):
+      this.ourClient.headers = newHttpHeaders({
+        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:101.0) Gecko/20100101 Firefox/101.0",
+        "Referer": this.defaultPage,
+        "Host": img.attr("src").split("/")[2],
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,application/json,*/*;q=0.8"
+      })
+      var epubImg: Image = Image(bytes: this.ourClient.getContent(img.attr("src")), name: chapter.name & "-" & img.attr("src").split("/")[^1])
+      images.add(
+       epubImg
+      )
+  nodes.add(TiNode(images: images))
+  return nodes
 
 type MangaKakalotStatus = enum Active = "Ongoing", Hiatus = "Hiatus", Dropped = "Dropped", Completed = "Completed"
 
@@ -37,8 +59,17 @@ proc GetMetaData*(this: Novel): MetaData =
   return cMetaData
 
 
-proc GetChapterSequence*(this: Novel): seq[Chapter] =
+proc GetChapterSequence*(this: Novel): seq[Chapter] {.nimcall.} =
     var chapters: seq[Chapter]
+    if this.currPage != this.defaultPage:
+      this.ourClient.headers = this.defaultHeaders
+      this.page = parseHtml(this.ourClient.getContent(this.defaultPage))
+      this.currPage = this.defaultPage
+    for el in this.page.findAll("div"):
+      if el.kind != xnElement: continue
+      if el.attr("class") == "row":
+        let chapterA = el[1][0]
+        chapters.add(Chapter(name: chapterA.innerText, uri: chapterA.attr("href")))
     return chapters
 
 proc GetHomePage*(this: Novel): seq[Novel] =
