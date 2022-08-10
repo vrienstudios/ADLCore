@@ -1,3 +1,6 @@
 ./src/*.out
 ./src/ADLCore.out
 /tests/tester
+*.epub
+*.ts
+*.mp4
