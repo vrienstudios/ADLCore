@@ -11,6 +11,38 @@ suite "Novel/MangaKakalot":
     for result in search:
       echo result.name
     check search.len > 0
+  test "MetaData object for Komi-San Wa Komyushou Desu is correct":
+    novelObj = GenerateNewNovelInstance("MangaKakalot", "https://readmanganato.com/manga-va953509")
+    discard novelObj.getMetaData()
+    echo "Name: " & novelObj.metaData.name
+    echo "Author: " & novelObj.metaData.author
+    echo "Uri: " & novelObj.metaData.uri
+    echo "Desc: " & novelObj.metaData.description
+    echo "Genre: " & $novelObj.metaData.genre
+    echo "CoverUri: " & novelObj.metaData.coverUri
+    echo "Rating: " & novelObj.metaData.rating
+    echo "Status: " & $novelObj.metaData.statusType
+    check novelObj.metaData.name == "Komi-San Wa Komyushou Desu"
+    check novelObj.metaData.author == "Oda Tomohito"
+    check novelObj.metaData.uri == "https://readmanganato.com/manga-va953509"
+    check novelObj.metaData.description.len > 0
+    check novelObj.metaData.genre.len > 0
+    check novelObj.metaData.coverUri.len > 0
+    check novelObj.metaData.rating.len > 0
+  test "Can get chapter nodes and export EPUB file":
+    discard novelObj.getChapterSequence
+    var epb: Epub = Epub(title: novelObj.metaData.name, author: novelObj.metaData.author)
+    discard epb.StartEpubExport("./" & novelObj.metaData.name)
+    for chapter in novelObj.chapters[0..1]:
+      echo chapter.name & " " & chapter.uri
+      var nodes = novelObj.getNodes(chapter)
+      echo $nodes.len & " Nodes"
+      for node in nodes:
+        for image in node.images:
+          echo "Image: " & image.name
+      discard epb.AddPage(GeneratePage(nodes, chapter.name))
+    discard epb.EndEpubExport("001001", "ADLCore", "")
+    check fileExists("./Komi-San Wa Komyushou Desu.epub")
   test "MetaData object for Himitsu ni shiro yo!! is correct":
     novelObj = GenerateNewNovelInstance("MangaKakalot", "https://mangakakalot.com/manga/ak928973")
     discard novelObj.getMetaData()
