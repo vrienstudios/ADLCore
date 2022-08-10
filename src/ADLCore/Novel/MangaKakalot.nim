@@ -25,9 +25,13 @@ proc GetNodes*(this: Novel, chapter: Chapter): seq[TiNode] =
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,application/json,*/*;q=0.8"
       })
       var epubImg: Image = Image(bytes: this.ourClient.getContent(img.attr("src")), name: chapter.name & "-" & img.attr("src").split("/")[^1])
-      images.add(
-       epubImg
-      )
+      images.add(epubImg)
+  
+  this.ourClient.headers = newHttpHeaders({
+    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:101.0) Gecko/20100101 Firefox/101.0",
+    "Host": this.metaData.coverUri.split("/")[2],
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,application/json,*/*;q=0.8"
+  })
   nodes.add(TiNode(images: images))
   return nodes
 
