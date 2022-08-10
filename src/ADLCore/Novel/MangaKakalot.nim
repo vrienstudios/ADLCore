@@ -1,17 +1,11 @@
 import ./NovelTypes
 import ../genericMediaTypes
 import EPUB/Types/genericTypes
+import EPUB/genericHelpers
 import std/[httpclient, htmlparser, xmltree, strutils, strtabs, parseutils, sequtils, enumutils, json]
 
 # Please follow this layout for any additional sites.
-proc sanitizeFilename(filename: string): string =
-  var newStr: string = ""
-  var oS = filename.toLowerAscii()
-  for chr in oS:
-    # what is regex
-    if (ord(chr) >= ord('a') and ord(chr) <= ord('z')) or (ord(chr) >= ord('0') and ord(chr) <= ord('9')) or (ord(chr) == ord('_')) or (ord(chr) == ord('.')):
-      newStr.add(chr)
-  return newStr
+
 proc GetNodes*(this: Novel, chapter: Chapter): seq[TiNode] =
   var nodes: seq[TiNode]
   var images: seq[Image]
@@ -32,7 +26,7 @@ proc GetNodes*(this: Novel, chapter: Chapter): seq[TiNode] =
         "Host": img.attr("src").split("/")[2],
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,application/json,*/*;q=0.8"
       })
-      var epubImg: Image = Image(bytes: this.ourClient.getContent(img.attr("src")), name: sanitizeFilename(chapter.name.split(" ").join("_") & "_" & img.attr("src").split("/")[^1]))
+      var epubImg: Image = Image(bytes: this.ourClient.getContent(img.attr("src")), name: SanitizePageProp(chapter.name.split(" ").join("_") & "_" & img.attr("src").split("/")[^1]))
       images.add(epubImg)
   
   this.ourClient.headers = newHttpHeaders({
