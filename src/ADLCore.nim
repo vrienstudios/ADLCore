@@ -1,11 +1,12 @@
 import ./ADLCore/Novel/NovelTypes
 import ./ADLCore/Novel/NovelHall
 import ./ADLCore/Video/VidStream, ./ADLCore/Video/VideoType, ./ADLCore/Video/HAnime, ./ADLCore/Novel/MangaKakalot
-import std/[asyncdispatch, strutils, dynlib, httpclient, tables, sharedtables]
+import std/[os, asyncdispatch, strutils, dynlib, httpclient, tables, sharedtables]
 import ./ADLCore/genericMediaTypes
 import EPUB
 import EPUB/Types/genericTypes
 import nimscripter
+import ./ADLCore/Interp
 
 proc onProgressChanged(total, progress, speed: BiggestInt) {.async,cdecl.} =
     echo("Downloaded ", progress, " of ", total)
@@ -40,3 +41,11 @@ proc GenerateNewVideoInstance*(site: string, uri: string): Video =
     else: discard
   assert aniObj != nil
   return aniObj
+proc ScanForScriptsAndLoad*(filePath: string): seq[NScript] =
+  var scripts: seq[NScript] = @[]
+  for n in walkFiles(filePath & "*.nims"):
+    scripts.add(GenNewScript(n))
+  return scripts
+
+#let scripts = ScanForScriptsAndLoad("/mnt/General/work/Programming/ADLCore/src/")
+#let mdata = scripts[0].GetMetaData("https://www.volarenovels.com/novel/physician-not-a-consort")
