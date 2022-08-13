@@ -1,9 +1,11 @@
 import ./ADLCore/Novel/NovelTypes
 import ./ADLCore/Novel/NovelHall
 import ./ADLCore/Video/VidStream, ./ADLCore/Video/VideoType, ./ADLCore/Video/HAnime, ./ADLCore/Novel/MangaKakalot
-import std/[asyncdispatch, strutils, dynlib]
+import std/[asyncdispatch, strutils, dynlib, httpclient, tables, sharedtables]
 import ./ADLCore/genericMediaTypes
 import EPUB
+import EPUB/Types/genericTypes
+import nimscripter
 
 proc onProgressChanged(total, progress, speed: BiggestInt) {.async,cdecl.} =
     echo("Downloaded ", progress, " of ", total)
@@ -38,15 +40,3 @@ proc GenerateNewVideoInstance*(site: string, uri: string): Video =
     else: discard
   assert aniObj != nil
   return aniObj
-# Modules Implementation Test
-#type
-#  initiatior = proc (str: string): HeaderTuple {.nimcall.}
-#
-#let lib = loadLib("./libNovelHall.so")
-#assert lib != nil
-#var ini = cast[initiatior](lib.symAddr("Init"))
-#assert ini != nil
-#var hT: HeaderTuple = ini("www.novelhall.com")
-#var str: string = $hT[1]
-#echo str.len
-#echo str

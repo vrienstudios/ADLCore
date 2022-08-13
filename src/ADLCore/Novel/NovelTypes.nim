@@ -1,6 +1,8 @@
 import EPUB/Types/genericTypes
 import ../genericMediaTypes
 import std/[asyncdispatch, httpclient, xmltree, tables]
+import nimscripter
+
 
 type
   HeaderTuple* = tuple[headers: HttpHeaders, defaultPage: string, getNodes: proc(this: Novel, chapter: Chapter): seq[TiNode] {.nimcall.},
@@ -12,6 +14,9 @@ type
       uri*: string
       contentSeq*: seq[TiNode]
   Novel* = ref object of RootObj
+      isOwnedByScript: bool
+      intr: Option[Interpreter]
+
       metaData*: MetaData
       lastModified*: string
 
@@ -66,3 +71,18 @@ method Init*(this: Novel, hTuple: HeaderTuple) =
   this.setTuple(hTuple)
   this.ourClient = newHttpClient()
   this.ourClient.headers = this.defaultHeaders
+
+proc processHttpRequest(uri: string): string =
+  var client = newHttpClient()
+  return client.getContent(uri)
+
+exportTo(ADLNovel, InfoTuple, Status, LanguageType, MetaData,
+  Image, TiNode, processHttpRequest)
+const includes = implNimScriptModule(ADLNovel)
+
+proc InitNovelScript*(scriptPath: string): Novel =
+  var novelObj: Novel = Novel()
+  novelObj.isOwnedByScript = true
+  # Load Script
+  let scr = NimScriptPath(scriptPath)
+  novelObj.intr = loadscript(scr, includes)

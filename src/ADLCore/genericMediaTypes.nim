@@ -1,4 +1,9 @@
 import std/strutils
+
+type
+  InfoTuple* = tuple[name: string, scraperType: string, version: string,
+  projectUri: string, siteUri: string]
+
 type
     Status* {.pure.} = enum
         Active = "Active", Hiatus = "Hiatus", Dropped = "Dropped", Completed = "Completed"
