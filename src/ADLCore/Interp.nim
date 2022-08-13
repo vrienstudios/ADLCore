@@ -36,4 +36,3 @@ proc GenNewScript*(path: string): NScript =
   if script.headerInfo.scraperType == "novel": script.novelHost = Novel()
   elif script.headerInfo.scraperType == "video": script.videoHost = Video()
   return script
-
