@@ -8,6 +8,20 @@ import VideoType
 var jContent: JsonNode
 var aesKey: string
 
+proc Search*(this: Video, str: string): seq[MetaData] =
+  # https://search.htv-services.com/
+  let mSearchData = %*{
+    "blacklist": [],
+    "brands": [],
+    "order_by": "created_at_unix",
+    "ordering": "desc",
+    "page": 0,
+    "search_text": str,
+    "tags": [],
+    "tags_mode": "AND"
+  }
+  let response = this.ourClient.request("https://search.htv-services.com/", httpMethod = HttpPost, body = $mSearchData)
+  let jsonData = parseJson(response.body)["hits"]
 proc GetMetaData*(this: Video): MetaData =
   this.metaData = MetaData()
   if this.currPage != this.defaultPage:
