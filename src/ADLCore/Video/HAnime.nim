@@ -25,15 +25,15 @@ proc Search*(this: Video, str: string): seq[MetaData] =
   let jsonData = parseJson(response.body)["hits"].getElems()
   for i in jsonData:
     var met: MetaData = MetaData()
-    met.name = i["name"].getString()
-    met.uri = "https//HAnime.tv/videos/hentai/" & i["slug"].getString()
-    met.coverUri = i["cover_url"].getString()
-    met.series = i["brand"].getString()
+    met.name = i["name"].getStr()
+    met.uri = "https//HAnime.tv/videos/hentai/" & i["slug"].getStr()
+    met.coverUri = i["cover_url"].getStr()
+    met.series = i["brand"].getStr()
     # Contains <p> html element.
-    met.description = parseHtml(i["description"].getString()).innerText
+    met.description = parseHtml(i["description"].getStr()).innerText
     var tags: seq[string] = @[]
     for tag in i["tags"].getElems():
-      tags.add(tag.getString)
+      tags.add(tag.getStr())
     met.genre = tags
     data.add(met)
   return data
