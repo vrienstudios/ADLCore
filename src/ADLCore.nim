@@ -41,10 +41,12 @@ proc GenerateNewVideoInstance*(site: string, uri: string): Video =
     else: discard
   assert aniObj != nil
   return aniObj
-proc ScanForScriptsAndLoad*(filePath: string): seq[NScript] =
-  var scripts: seq[NScript] = @[]
-  for n in walkFiles(filePath & "*.nims"):
-    scripts.add(GenNewScript(n))
+proc ScanForScriptsInfoTuple*(folderPath: string): seq[Interp.InfoTuple] =
+  var scripts: seq[Interp.InfoTuple] = @[]
+  for n in walkFiles(folderPath & "*.nims"):
+    var tup = ReadScriptInfoTuple(n)
+    scripts.add(tup)
+    echo $tup
   return scripts
 
 #let scripts = ScanForScriptsAndLoad("/mnt/General/work/Programming/ADLCore/src/")
