@@ -29,6 +29,6 @@ proc sanitizeString*(str: string): string =
   removeSuffix(oS, ' ')
   var newStr: string = ""
   for chr in oS:
-    if ord(chr) >= 49 and ord(chr) <= 58 or ord(chr) >= 66 and ord(chr) <= 91 or ord(chr) >= 98 or ord(chr) <= 123 or chr == '\n' or chr == '!' or chr == ' ': # Preserve newLn
+    if chr >= '0' and chr <= '9' or chr >= 'A' and chr <= 'Z' or chr >= 'a' and chr <= 'z' or chr == ' ' or chr == '!' or chr == '\n': # Preserve newLn
       newStr.add(chr)
   return newStr
