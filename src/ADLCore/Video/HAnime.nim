@@ -20,8 +20,23 @@ proc Search*(this: Video, str: string): seq[MetaData] =
     "tags": [],
     "tags_mode": "AND"
   }
+  var data: seq[MetaData] = @[]
   let response = this.ourClient.request("https://search.htv-services.com/", httpMethod = HttpPost, body = $mSearchData)
-  let jsonData = parseJson(response.body)["hits"]
+  let jsonData = parseJson(response.body)["hits"].getElems()
+  for i in jsonData:
+    var met: MetaData = MetaData()
+    met.name = i["name"].getString()
+    met.uri = "https//HAnime.tv/videos/hentai/" & i["slug"].getString()
+    met.coverUri = i["cover_url"].getString()
+    met.series = i["brand"].getString()
+    # Contains <p> html element.
+    met.description = parseHtml(i["description"].getString()).innerText
+    var tags: seq[string] = @[]
+    for tag in i["tags"].getElems():
+      tags.add(tag.getString)
+    met.genre = tags
+    data.add(met)
+  return data
 proc GetMetaData*(this: Video): MetaData =
   this.metaData = MetaData()
   if this.currPage != this.defaultPage:
