@@ -12,8 +12,17 @@ type
     novelHost: Novel
     videoHost: Video
 
-method GetMetaData*(this: Nscript, page: string): MetaData =
+method getNodes*(this: Nscript, chapter: string): seq[TiNode] =
+  return this.intr.invoke(GetNodes, chapter, returnType = seq[TiNode])
+method getMetaData*(this: Nscript, page: string): MetaData =
   return this.intr.invoke(GetMetaData, page, returnType = MetaData)
+method getChapterSequence*(this: Nscript, page: string): seq[Chapter] =
+  return this.intr.invoke(GetChapterSequence, page, returnType = seq[Chapter])
+# getHomeCarousel should probably return a seq[MetaData] that is later consumed by getChapterSequence to get a download
+method getHomeCarousel*(this: Nscript, page: string): seq[MetaData] =
+  return this.intr.invoke(GetHomeCarousel, page, returnType = seq[MetaData])
+method searchDownloader*(this: Nscript, str: string): seq[MetaData] =
+  return this.intr.invoke(Search, str, returnType = seq[MetaData])
 
 proc ParseInfoTuple(file: string): InfoTuple =
   var infoTuple: InfoTuple = (name: "", cover: "", scraperType: "", version: "", projectUri: "", siteUri: "", scriptPath: "")
@@ -59,11 +68,13 @@ exportTo(ADLNovel, InfoTuple, Status, LanguageType, MetaData,
   Image, TiNode, processHttpRequest)
 const novelInclude = implNimScriptModule(ADLNovel)
 
+
 proc GenNewScript*(path: string): NScript =
   var script: NScript = NScript()
   let scr = NimScriptPath(path)
   script.intr = loadScript(scr, novelInclude)
   script.headerInfo = ReadScriptInfoTuple(path)
+  # novel and video hosts are probably not required
   if script.headerInfo.scraperType == "novel": script.novelHost = Novel()
   elif script.headerInfo.scraperType == "video": script.videoHost = Video()
   return script
