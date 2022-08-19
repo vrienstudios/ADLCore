@@ -1,6 +1,6 @@
 import ./NovelTypes
 import ../genericMediaTypes
-import EPUB/[types]
+import EPUB/[types, genericHelpers]
 import std/[httpclient, htmlparser, xmltree, strutils, strtabs, parseutils, sequtils, enumutils, json]
 
 # Please follow this layout for any additional sites.
@@ -25,7 +25,7 @@ proc GetNodes*(this: Novel, chapter: Chapter): seq[TiNode] =
         "Host": img.attr("src").split("/")[2],
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,application/json,*/*;q=0.8"
       })
-      var epubImg: Image = Image(bytes: this.ourClient.getContent(img.attr("src")), name: sanitizeString(chapter.name.split(" ").join("_") & "_" & img.attr("src").split("/")[^1]))
+      var epubImg: Image = Image(bytes: this.ourClient.getContent(img.attr("src")), name: SanitizePageProp(chapter.name.split(" ").join("_") & "_" & img.attr("src").split("/")[^1]))
       images.add(epubImg)
   
   this.ourClient.headers = newHttpHeaders({
