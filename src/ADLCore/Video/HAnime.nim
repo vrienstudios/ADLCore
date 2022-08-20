@@ -21,8 +21,12 @@ proc Search*(this: Video, str: string): seq[MetaData] =
     "tags_mode": "AND"
   }
   var data: seq[MetaData] = @[]
-  let response = this.ourClient.request("https://search.htv-services.com/", httpMethod = HttpPost, body = $mSearchData)
-  let jsonData = parseJson(response.body)["hits"].getElems()
+  let defHeaders = newHttpHeaders({
+    "Content-Type": "application/json"
+  })
+  let response = this.ourClient.request("https://search.htv-services.com/", httpMethod = HttpPost, body = $mSearchData,
+    headers = defHeaders)
+  let jsonData = parseJson(parseJson(response.body)["hits"].getStr()).getElems()
   for i in jsonData:
     var met: MetaData = MetaData()
     met.name = i["name"].getStr()
@@ -35,6 +39,7 @@ proc Search*(this: Video, str: string): seq[MetaData] =
     for tag in i["tags"].getElems():
       tags.add(tag.getStr())
     met.genre = tags
+    echo met.name
     data.add(met)
   return data
 proc GetMetaData*(this: Video): MetaData =
@@ -125,7 +130,7 @@ proc Init*(uri: string): HeaderTuple =
     getMetaData: GetMetaData,
     getEpisodeSequence: nil,
     getHomeCarousel: nil,
-    searchDownloader: nil,
+    searchDownloader: Search,
     selResolution: selEResolution,
     listResolution: listEResolutions,
     downloadNextVideoPart: DownloadNextVideoPart,
