@@ -2,15 +2,13 @@ import nimscripter
 import genericMediaTypes
 import ./Novel/NovelTypes, ./Video/VideoType
 import std/[httpclient, htmlparser, xmltree, strutils, strtabs, parseutils, sequtils]
-import EPUB/Types/genericTypes
+import EPUB/types
 
 type
   InfoTuple* = tuple[name: string, cover: string, scraperType: string, version: string, projectUri: string, siteUri: string, scriptPath: string]
-  NScript* = ref object of RootObj
+  NScript* = ref object
     headerInfo*: InfoTuple
     intr: Option[Interpreter]
-    novelHost: Novel
-    videoHost: Video
 
 method getNodes*(this: Nscript, chapter: string): seq[TiNode] =
   return this.intr.invoke(GetNodes, chapter, returnType = seq[TiNode])
@@ -74,7 +72,4 @@ proc GenNewScript*(path: string): NScript =
   let scr = NimScriptPath(path)
   script.intr = loadScript(scr, novelInclude)
   script.headerInfo = ReadScriptInfoTuple(path)
-  # novel and video hosts are probably not required
-  if script.headerInfo.scraperType == "novel": script.novelHost = Novel()
-  elif script.headerInfo.scraperType == "video": script.videoHost = Video()
   return script

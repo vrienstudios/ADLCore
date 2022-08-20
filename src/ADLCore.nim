@@ -4,7 +4,7 @@ import ./ADLCore/Video/VidStream, ./ADLCore/Video/VideoType, ./ADLCore/Video/HAn
 import std/[os, asyncdispatch, strutils, dynlib, httpclient, tables, sharedtables]
 import ./ADLCore/genericMediaTypes
 import EPUB
-import EPUB/Types/genericTypes
+import EPUB/types
 import nimscripter
 import ./ADLCore/Interp
 
@@ -49,5 +49,7 @@ proc ScanForScriptsInfoTuple*(folderPath: string): seq[Interp.InfoTuple] =
     echo $tup
   return scripts
 
-#let scripts = ScanForScriptsAndLoad("/mnt/General/work/Programming/ADLCore/src/")
-#let mdata = scripts[0].GetMetaData("https://www.volarenovels.com/novel/physician-not-a-consort")
+#let script = GenNewScript(ScanForScriptsInfoTuple("/mnt/General/work/Programming/ADLCore/src/")[0])
+#let mdata = script[0].GetMetaData("https://www.volarenovels.com/novel/physician-not-a-consort")
+#echo mdata.name
+#echo mdata.author
