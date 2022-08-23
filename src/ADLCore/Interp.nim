@@ -58,7 +58,22 @@ proc ParseInfoTuple(file: string): InfoTuple =
 
 proc GetHTMLNode(node: XmlNode, path: varargs[tuple[key: string, attrs: seq[tuple[k, v: string]]]]): XmlNode =
   var currentNode = node
-  return nil
+  for key in path:
+    var i: int = 0
+    for node in currentNode.items:
+      var aChk: seq[bool] = @[]
+      if node.kind != xnElement: continue
+      if node.tag != key.key: continue
+      if key.attrs.len > 0 and key.attrs[0].k == "nth" and parseInt(key.attrs[0].v) < i:
+        inc i
+        continue
+      for attr in key.attrs:
+        if node.attr(attr.k) == attr.v: aChk.add true
+      if len(aChk) != len(key.attrs): continue
+      currentNode = node
+      break
+  return currentNode
+
 proc ReadScriptInfoTuple*(path: string): InfoTuple =
   var infoTuple = ParseInfoTuple(readFile(path))
   infoTuple.scriptPath = path
@@ -71,7 +86,7 @@ proc processHttpRequest(uri: string, scriptID: int, headers: seq[tuple[key: stri
   return NScriptClient[scriptID].getContent(uri)
 
 exportTo(ADLNovel, InfoTuple, Status, LanguageType, MetaData,
-  Image, TiNode, processHttpRequest)
+  Image, TiNode, processHttpRequest, GetHTMLNode)
 const novelInclude = implNimScriptModule(ADLNovel)
 
 
