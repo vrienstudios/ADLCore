@@ -4,11 +4,18 @@ import ./Novel/NovelTypes, ./Video/VideoType
 import std/[httpclient, htmlparser, xmltree, strutils, strtabs, parseutils, sequtils]
 import EPUB/types
 
+var NScriptClient: seq[HttpClient] = @[]
 type
   InfoTuple* = tuple[name: string, cover: string, scraperType: string, version: string, projectUri: string, siteUri: string, scriptPath: string]
   NScript* = ref object
     headerInfo*: InfoTuple
+    scriptID: int
     intr: Option[Interpreter]
+proc `=destory`(script: var NScript) =
+  NScriptClient[script.scriptID] = null
+  freeResource(script.headerInfo)
+  freeResource(script.scriptID)
+  freeResource(script.intr)
 
 method getNodes*(this: Nscript, chapter: string): seq[TiNode] =
   return this.intr.invoke(GetNodes, chapter, returnType = seq[TiNode])
@@ -55,12 +62,12 @@ proc ReadScriptInfoTuple*(path: string): InfoTuple =
   var infoTuple = ParseInfoTuple(readFile(path))
   infoTuple.scriptPath = path
   return infoTuple
-proc processHttpRequest(uri: string, headers: seq[tuple[key: string, value: string]]): string =
-  var client = newHttpClient()
+proc processHttpRequest(uri: string, scriptID: int, headers: seq[tuple[key: string, value: string]]): string =
   var reqHeaders: HttpHeaders = HttpHeaders()
   for i in headers:
     add(reqHeaders, i.key, i.value)
-  return client.getContent(uri)
+  NScriptClient[scriptID].defaultHeaders = reqHeaders
+  return NScriptClient[scriptID].getContent(uri)
 
 exportTo(ADLNovel, InfoTuple, Status, LanguageType, MetaData,
   Image, TiNode, processHttpRequest)
