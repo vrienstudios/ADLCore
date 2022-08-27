@@ -65,7 +65,12 @@ proc processHttpRequest(uri: string, scriptID: int, headers: seq[tuple[key: stri
   for i in headers:
     add(reqHeaders, i.key, i.value)
   NScriptClient[scriptID].headers = reqHeaders
-  return NScriptClient[scriptID].getContent(uri)
+  let request = NScriptClient[scriptID].request(uri, httpMethod = HttpGet)
+  case request.status:
+    of "404":
+      return "404"
+    else:
+      return request.body
 
 exportTo(ADLNovel, InfoTuple, Status, LanguageType, MetaData,
   Image, TiNode, processHttpRequest)
