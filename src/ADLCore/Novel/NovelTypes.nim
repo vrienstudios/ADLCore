@@ -1,4 +1,4 @@
-import EPUB/Types/genericTypes
+import EPUB/types
 import ../genericMediaTypes
 import std/[asyncdispatch, httpclient, xmltree, tables]
 

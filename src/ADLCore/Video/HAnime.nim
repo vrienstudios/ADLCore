@@ -8,6 +8,40 @@ import VideoType
 var jContent: JsonNode
 var aesKey: string
 
+proc Search*(this: Video, str: string): seq[MetaData] =
+  # https://search.htv-services.com/
+  let mSearchData = %*{
+    "blacklist": [],
+    "brands": [],
+    "order_by": "created_at_unix",
+    "ordering": "desc",
+    "page": 0,
+    "search_text": str,
+    "tags": [],
+    "tags_mode": "AND"
+  }
+  var data: seq[MetaData] = @[]
+  let defHeaders = newHttpHeaders({
+    "Content-Type": "application/json"
+  })
+  let response = this.ourClient.request("https://search.htv-services.com/", httpMethod = HttpPost, body = $mSearchData,
+    headers = defHeaders)
+  let jsonData = parseJson(parseJson(response.body)["hits"].getStr()).getElems()
+  for i in jsonData:
+    var met: MetaData = MetaData()
+    met.name = i["name"].getStr()
+    met.uri = "https//HAnime.tv/videos/hentai/" & i["slug"].getStr()
+    met.coverUri = i["cover_url"].getStr()
+    met.series = i["brand"].getStr()
+    # Contains <p> html element.
+    met.description = parseHtml(i["description"].getStr()).innerText
+    var tags: seq[string] = @[]
+    for tag in i["tags"].getElems():
+      tags.add(tag.getStr())
+    met.genre = tags
+    echo met.name
+    data.add(met)
+  return data
 proc GetMetaData*(this: Video): MetaData =
   this.metaData = MetaData()
   if this.currPage != this.defaultPage:
@@ -96,7 +130,7 @@ proc Init*(uri: string): HeaderTuple =
     getMetaData: GetMetaData,
     getEpisodeSequence: nil,
     getHomeCarousel: nil,
-    searchDownloader: nil,
+    searchDownloader: Search,
     selResolution: selEResolution,
     listResolution: listEResolutions,
     downloadNextVideoPart: DownloadNextVideoPart,

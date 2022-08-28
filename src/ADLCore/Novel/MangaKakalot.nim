@@ -1,7 +1,6 @@
 import ./NovelTypes
 import ../genericMediaTypes
-import EPUB/Types/genericTypes
-import EPUB/genericHelpers
+import EPUB/[types, genericHelpers]
 import std/[httpclient, htmlparser, xmltree, strutils, strtabs, parseutils, sequtils, enumutils, json]
 
 # Please follow this layout for any additional sites.

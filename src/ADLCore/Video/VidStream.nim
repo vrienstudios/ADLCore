@@ -131,7 +131,7 @@ proc GetMetaData(this: Video): MetaData {.nimcall.} =
 proc GetEpisodeMetaDataObject(this: XmlNode): MetaData {.nimcall.} =
   var metaData: MetaData = MetaData()
   let node = this.child("a")
-  metaData.uri = sanitizeString(node.attr("href"))
+  metaData.uri = "https://gogoplay1.com" & node.attr("href")
   # OM MY GOD, WHY
   for divider in node.items:
     if divider.kind != xnElement:
@@ -152,8 +152,8 @@ proc GetEpisodeSequence(this: Video): seq[MetaData] {.nimcall.} =
   if this.currPage != this.defaultPage:
     this.page = parseHtml(this.ourClient.getContent(this.defaultPage))
     this.currPage = this.defaultPage
-  for nodes in this.page.findAll("ul"):
-    if nodes.attr("class") == "listing items list":
+  for nodes in this.page.findAll("div"):
+    if nodes.attr("class") == "video-info-left":
       for li in nodes.findAll("li"):
         mDataSeq.add(GetEpisodeMetaDataObject(li))
       break
