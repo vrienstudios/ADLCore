@@ -11,7 +11,7 @@ type
     scriptID: int
     intr: Option[Interpreter]
 
-var NScripts: seq[NScript]
+var NScripts: seq[NScript] = @[]
 var NScriptClient: seq[HttpClient] = @[]
 
 method getNodes*(this: Nscript, chapter: string): seq[TiNode] =
@@ -94,10 +94,12 @@ exportCode(ADLNovel):
     return currentNode
 const novelInclude = implNimScriptModule(ADLNovel)
 
-
 proc GenNewScript*(path: string): NScript =
   var script: NScript = NScript()
   let scr = NimScriptPath(path)
   script.intr = loadScript(scr, novelInclude)
   script.headerInfo = ReadScriptInfoTuple(path)
+  NScripts.add script
+  NScriptClient.add newHttpClient()
+  script.intr.invoke(SetID, len(NScriptClient) - 1)
   return script

@@ -53,3 +53,8 @@ proc ScanForScriptsInfoTuple*(folderPath: string): seq[Interp.InfoTuple] =
 #let mdata = script[0].GetMetaData("https://www.volarenovels.com/novel/physician-not-a-consort")
 #echo mdata.name
 #echo mdata.author
+
+# Testing code for scripts (do NOT build projects with this code included)
+var lam = ScanForScriptsInfoTuple("./")
+for l in lam:
+  var sc = GenNewScript("./" & l.name & ".nims")
