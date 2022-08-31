@@ -207,7 +207,16 @@ proc DownloadNextVideoPart(this: Video, path: string): bool {.nimcall.} =
     file = open(path, fmAppend)
   else:
     file = open(path, fmWrite)
-  let videoData = this.ourClient.getContent(this.videoStream[this.videoCurrIdx])
+  var aLock: bool = true
+  var counter: int = 0
+  var videoData: string = ""
+  while aLock and counter < 10:
+    try:
+      videoData = this.ourClient.getContent(this.videoStream[this.videoCurrIdx])
+      aLock = false
+    except:
+      inc counter
+      echo "Failed Download, Retrying $1/$2" % [$counter, "10"]
   write(file, videoData)
   inc this.videoCurrIdx
   close(file)
