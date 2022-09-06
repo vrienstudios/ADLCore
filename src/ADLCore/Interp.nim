@@ -72,7 +72,7 @@ proc processHttpRequest(uri: string, scriptID: int, headers: seq[tuple[key: stri
     else:
       return request.body
 
-exportTo(ADLNovel, InfoTuple, Status, LanguageType, MetaData,
+exportTo(ADLNovel, InfoTuple, Status, EPUB, LanguageType, MetaData,
   Image, TiNode, processHttpRequest)
 exportCode(ADLNovel):
   proc GetHTMLNode*(node: XmlNode, path: varargs[tuple[key: string, attrs: seq[tuple[k, v: string]]]]): XmlNode =
