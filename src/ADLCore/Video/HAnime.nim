@@ -75,7 +75,8 @@ proc listEResolutions*(this: Video): seq[MediaStreamTuple] =
   var medStreams: seq[MediaStreamTuple] = @[]
   assert jContent != nil
   let servers = jContent["videos_manifest"]["servers"]
-  for resolution in servers.getElems()[0]["streams"].getElems():
+  # skip first to ignore 1080p.
+  for resolution in servers.getElems()[0]["streams"].getElems()[1..^1]:
     medStreams.add((id: $resolution["id"].getInt(), resolution: $resolution["width"].getInt() & "x" & resolution["height"].getStr(),
     uri: resolution["url"].getStr(), language: "english",
       isAudio: false, bandWidth: "unknown"))
@@ -94,6 +95,8 @@ proc selEResolution*(this: Video, tul: MediaStreamTuple) {.nimcall.} =
 # https://www.youtube.com/watch?v=XCrjEPjJp18
 proc DownloadNextVideoPart*(this: Video, path: string): bool =
   var dContext: CBC[aes128]
+  if this.videoCurrIdx >= this.videoStream.len:
+    return false
   let encContent = this.ourClient.getContent(this.videoStream[this.videoCurrIdx])
   let cIdx = $(this.videoCurrIdx + 1)
   let iv: string = newString(aes128.sizeBlock)
@@ -102,8 +105,6 @@ proc DownloadNextVideoPart*(this: Video, path: string): bool =
   var dContent: string = newString(encContent.len)
   dContext.decrypt(encContent, dContent)
   dContext.clear()
-  if this.videoCurrIdx >= this.videoStream.len:
-    return false
   var file: File
   if fileExists(path):
     file = open(path, fmAppend)
