@@ -3,6 +3,7 @@ import genericMediaTypes
 import ./Novel/NovelTypes, ./Video/VideoType
 import std/[httpclient, htmlparser, xmltree, strutils, strtabs, parseutils, sequtils]
 import EPUB/types
+import options, os, halonium
 import zippy
 
 type
@@ -61,7 +62,16 @@ proc ReadScriptInfoTuple*(path: string): InfoTuple =
   var infoTuple = ParseInfoTuple(readFile(path))
   infoTuple.scriptPath = path
   return infoTuple
-proc processHttpRequest(uri: string, scriptID: int, headers: seq[tuple[key: string, value: string]]): string =
+proc processHttpRequest(uri: string, scriptID: int, headers: seq[tuple[key: string, value: string]], mimicBrowser: bool = false): string =
+  if mimicBrowser:
+    # TODO: When windows, verify browsers installed
+    # TODO: When linux, verify browsers installed
+    # TODO: Move this from where it currently sits, and have it be somewhat like http clients, assigned based on script.
+    #   So we do not have to create a new browser session every request.
+    # Will currenctly default to chromium, since I believe that network stack is less likely to be blocked due to fingerprinting.
+    var seshs = createSession(Chromium, browserOptions=chromeOptions(args["--headless"]), hideDriverContextWindow = true)
+    sesh.navigate uri
+    return sesh.pageSource()
   var reqHeaders: HttpHeaders = newHttpHeaders()
   var g: HttpClient = cast[HttpClient](NScriptClient[scriptID])
   echo uri
@@ -70,15 +80,12 @@ proc processHttpRequest(uri: string, scriptID: int, headers: seq[tuple[key: stri
   g.headers = reqHeaders
   echo g.headers
   let request = g.getContent(uri)
-  #var request = g.request(uri, httpMethod = HttpGet, headers = reqHeaders)
-  #echo request
-  #return request
   echo (request)
-  #case request.status:
-  #  of "404":
-  #    return "404"
-  #  else:
-  #    return request.body
+  case request.status:
+    of "404":
+      return "404"
+    else:
+      return request.body
 
 proc GetHTMLNode*(node: XmlNode, path: varargs[tuple[key: string, attrs: seq[tuple[k, v: string]]]]): XmlNode =
   var currentNode = node
