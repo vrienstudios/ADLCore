@@ -131,7 +131,7 @@ proc GetMetaData(this: Video): MetaData {.nimcall.} =
 proc GetEpisodeMetaDataObject(this: XmlNode): MetaData {.nimcall.} =
   var metaData: MetaData = MetaData()
   let node = this.child("a")
-  metaData.uri = sanitizeString(node.attr("href"))
+  metaData.uri = "https://gogoplay1.com" & node.attr("href")
   # OM MY GOD, WHY
   for divider in node.items:
     if divider.kind != xnElement:
@@ -152,8 +152,8 @@ proc GetEpisodeSequence(this: Video): seq[MetaData] {.nimcall.} =
   if this.currPage != this.defaultPage:
     this.page = parseHtml(this.ourClient.getContent(this.defaultPage))
     this.currPage = this.defaultPage
-  for nodes in this.page.findAll("ul"):
-    if nodes.attr("class") == "listing items list":
+  for nodes in this.page.findAll("div"):
+    if nodes.attr("class") == "video-info-left":
       for li in nodes.findAll("li"):
         mDataSeq.add(GetEpisodeMetaDataObject(li))
       break
@@ -207,7 +207,16 @@ proc DownloadNextVideoPart(this: Video, path: string): bool {.nimcall.} =
     file = open(path, fmAppend)
   else:
     file = open(path, fmWrite)
-  let videoData = this.ourClient.getContent(this.videoStream[this.videoCurrIdx])
+  var aLock: bool = true
+  var counter: int = 0
+  var videoData: string = ""
+  while aLock and counter < 10:
+    try:
+      videoData = this.ourClient.getContent(this.videoStream[this.videoCurrIdx])
+      aLock = false
+    except:
+      inc counter
+      echo "Failed Download, Retrying $1/$2" % [$counter, "10"]
   write(file, videoData)
   inc this.videoCurrIdx
   close(file)

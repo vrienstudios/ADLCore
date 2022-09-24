@@ -8,6 +8,40 @@ import VideoType
 var jContent: JsonNode
 var aesKey: string
 
+proc Search*(this: Video, str: string): seq[MetaData] =
+  # https://search.htv-services.com/
+  let mSearchData = %*{
+    "blacklist": [],
+    "brands": [],
+    "order_by": "created_at_unix",
+    "ordering": "desc",
+    "page": 0,
+    "search_text": str,
+    "tags": [],
+    "tags_mode": "AND"
+  }
+  var data: seq[MetaData] = @[]
+  let defHeaders = newHttpHeaders({
+    "Content-Type": "application/json"
+  })
+  let response = this.ourClient.request("https://search.htv-services.com/", httpMethod = HttpPost, body = $mSearchData,
+    headers = defHeaders)
+  let jsonData = parseJson(parseJson(response.body)["hits"].getStr()).getElems()
+  for i in jsonData:
+    var met: MetaData = MetaData()
+    met.name = i["name"].getStr()
+    met.uri = "https//HAnime.tv/videos/hentai/" & i["slug"].getStr()
+    met.coverUri = i["cover_url"].getStr()
+    met.series = i["brand"].getStr()
+    # Contains <p> html element.
+    met.description = parseHtml(i["description"].getStr()).innerText
+    var tags: seq[string] = @[]
+    for tag in i["tags"].getElems():
+      tags.add(tag.getStr())
+    met.genre = tags
+    echo met.name
+    data.add(met)
+  return data
 proc GetMetaData*(this: Video): MetaData =
   this.metaData = MetaData()
   if this.currPage != this.defaultPage:
@@ -41,7 +75,8 @@ proc listEResolutions*(this: Video): seq[MediaStreamTuple] =
   var medStreams: seq[MediaStreamTuple] = @[]
   assert jContent != nil
   let servers = jContent["videos_manifest"]["servers"]
-  for resolution in servers.getElems()[0]["streams"].getElems():
+  # skip first to ignore 1080p.
+  for resolution in servers.getElems()[0]["streams"].getElems()[1..^1]:
     medStreams.add((id: $resolution["id"].getInt(), resolution: $resolution["width"].getInt() & "x" & resolution["height"].getStr(),
     uri: resolution["url"].getStr(), language: "english",
       isAudio: false, bandWidth: "unknown"))
@@ -60,6 +95,8 @@ proc selEResolution*(this: Video, tul: MediaStreamTuple) {.nimcall.} =
 # https://www.youtube.com/watch?v=XCrjEPjJp18
 proc DownloadNextVideoPart*(this: Video, path: string): bool =
   var dContext: CBC[aes128]
+  if this.videoCurrIdx >= this.videoStream.len:
+    return false
   let encContent = this.ourClient.getContent(this.videoStream[this.videoCurrIdx])
   let cIdx = $(this.videoCurrIdx + 1)
   let iv: string = newString(aes128.sizeBlock)
@@ -68,8 +105,6 @@ proc DownloadNextVideoPart*(this: Video, path: string): bool =
   var dContent: string = newString(encContent.len)
   dContext.decrypt(encContent, dContent)
   dContext.clear()
-  if this.videoCurrIdx >= this.videoStream.len:
-    return false
   var file: File
   if fileExists(path):
     file = open(path, fmAppend)
@@ -96,7 +131,7 @@ proc Init*(uri: string): HeaderTuple =
     getMetaData: GetMetaData,
     getEpisodeSequence: nil,
     getHomeCarousel: nil,
-    searchDownloader: nil,
+    searchDownloader: Search,
     selResolution: selEResolution,
     listResolution: listEResolutions,
     downloadNextVideoPart: DownloadNextVideoPart,
