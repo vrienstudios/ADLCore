@@ -12,6 +12,8 @@ type
       uri*: string
       contentSeq*: seq[TiNode]
   Novel* = ref object of RootObj
+      isOwnedByScript: bool
+
       metaData*: MetaData
       lastModified*: string
 

@@ -1,6 +1,7 @@
 ./src/*.out
 ./src/ADLCore.out
 /tests/tester
+/src/scriptTest
 *.epub
 *.ts
 *.mp4

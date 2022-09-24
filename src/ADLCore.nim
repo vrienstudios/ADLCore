@@ -1,9 +1,12 @@
 import ./ADLCore/Novel/NovelTypes
 import ./ADLCore/Novel/NovelHall
 import ./ADLCore/Video/VidStream, ./ADLCore/Video/VideoType, ./ADLCore/Video/HAnime, ./ADLCore/Novel/MangaKakalot
-import std/[asyncdispatch, strutils, dynlib]
+import std/[os, asyncdispatch, strutils, dynlib, httpclient, tables, sharedtables]
 import ./ADLCore/genericMediaTypes
 import EPUB
+import EPUB/types
+import nimscripter
+import ./ADLCore/Interp
 
 proc onProgressChanged(total, progress, speed: BiggestInt) {.async,cdecl.} =
     echo("Downloaded ", progress, " of ", total)
@@ -38,15 +41,20 @@ proc GenerateNewVideoInstance*(site: string, uri: string): Video =
     else: discard
   assert aniObj != nil
   return aniObj
-# Modules Implementation Test
-#type
-#  initiatior = proc (str: string): HeaderTuple {.nimcall.}
-#
-#let lib = loadLib("./libNovelHall.so")
-#assert lib != nil
-#var ini = cast[initiatior](lib.symAddr("Init"))
-#assert ini != nil
-#var hT: HeaderTuple = ini("www.novelhall.com")
-#var str: string = $hT[1]
-#echo str.len
-#echo str
+proc ScanForScriptsInfoTuple*(folderPath: string): seq[Interp.InfoTuple] =
+  var scripts: seq[Interp.InfoTuple] = @[]
+  for n in walkFiles(folderPath & "*.nims"):
+    var tup = ReadScriptInfoTuple(n)
+    scripts.add(tup)
+    echo $tup
+  return scripts
+
+#let script = GenNewScript(ScanForScriptsInfoTuple("/mnt/General/work/Programming/ADLCore/src/")[0])
+#let mdata = script[0].GetMetaData("https://www.volarenovels.com/novel/physician-not-a-consort")
+#echo mdata.name
+#echo mdata.author
+
+# Testing code for scripts (do NOT build projects with this code included)
+var lam = ScanForScriptsInfoTuple("./")
+for l in lam:
+  var sc = GenNewScript("./" & l.name & ".nims")
