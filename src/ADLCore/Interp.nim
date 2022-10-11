@@ -69,8 +69,9 @@ proc processHttpRequest(uri: string, scriptID: int, headers: seq[tuple[key: stri
     # TODO: Move this from where it currently sits, and have it be somewhat like http clients, assigned based on script.
     #   So we do not have to create a new browser session every request.
     # Will currenctly default to chromium, since I believe that network stack is less likely to be blocked due to fingerprinting.
-    var seshs = createSession(Chromium, browserOptions=chromeOptions(args=["--headless"]), hideDriverContextWindow = true)
+    var sesh = createSession(Chromium, browserOptions=chromeOptions(args=["--headless", "--user-agent=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/105.0.0.0 Safari/537.36"]), hideDriverConsoleWindow=true)
     sesh.navigate uri
+    echo sesh.pageSource()
     return sesh.pageSource()
   var reqHeaders: HttpHeaders = newHttpHeaders()
   var g: HttpClient = cast[HttpClient](NScriptClient[scriptID])
@@ -79,8 +80,7 @@ proc processHttpRequest(uri: string, scriptID: int, headers: seq[tuple[key: stri
     reqHeaders.add(i.key, i.value)
   g.headers = reqHeaders
   echo g.headers
-  let request = g.getContent(uri)
-  echo (request)
+  let request = g.request(url = uri, httpMethod = HttpGet, headers = reqHeaders)
   case request.status:
     of "404":
       return "404"
