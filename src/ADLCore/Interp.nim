@@ -69,7 +69,7 @@ proc processHttpRequest(uri: string, scriptID: int, headers: seq[tuple[key: stri
     # TODO: Move this from where it currently sits, and have it be somewhat like http clients, assigned based on script.
     #   So we do not have to create a new browser session every request.
     # Will currenctly default to chromium, since I believe that network stack is less likely to be blocked due to fingerprinting.
-    var seshs = createSession(Chromium, browserOptions=chromeOptions(args["--headless"]), hideDriverContextWindow = true)
+    var seshs = createSession(Chromium, browserOptions=chromeOptions(args=["--headless"]), hideDriverContextWindow = true)
     sesh.navigate uri
     return sesh.pageSource()
   var reqHeaders: HttpHeaders = newHttpHeaders()
