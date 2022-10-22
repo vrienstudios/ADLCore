@@ -25,7 +25,10 @@ type
         bkUp: bool
         uri: string
         resolution: string
-
+proc `$`*(this: MetaData): string =
+  return "name:$1\nseries:$2\nauthor:$3\nrating:$4\ngenre:$5\nnovelType:$6\nuri:$7\ndescription:$8\nlanguageType:$9\n" %
+    [this.name, this.series, this.author, this.rating, $this.genre, this.novelType, this.uri, this.description, $this.languageType] &
+    "statusType:$1\ncoverUri:$2" % [$this.statusType, this.coverUri]
 proc sanitizeString*(str: string): string =
   var oS = str
   removePrefix(oS, '\n')

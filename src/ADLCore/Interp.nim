@@ -12,7 +12,8 @@ type
     headerInfo*: InfoTuple
     scriptID: int
     intr: Option[Interpreter]
-
+  SNovel* = ref object of Novel
+    script*: NScript
 var NScripts: seq[NScript] = @[]
 var NScriptClient: seq[ptr HttpClient] = @[]
 
@@ -27,7 +28,26 @@ method getHomeCarousel*(this: Nscript, page: string): seq[MetaData] =
   return this.intr.invoke(GetHomeCarousel, page, returnType = seq[MetaData])
 method searchDownloader*(this: Nscript, str: string): seq[MetaData] =
   return this.intr.invoke(Search, str, returnType = seq[MetaData])
-
+# May be a bit repetitive, but those relating directly to the script, may be deprecated in the future.
+method getNodes*(this: SNovel, chapter: string): seq[TiNode] =
+  if this.script == nil:
+    return getNodes(this, chapter)
+  return this.script.intr.invoke(GetNodes, chapter, returnType = seq[TiNode])
+method setMetaData*(this: SNovel, page: string) =
+  this.metaData = this.script.intr.invoke(GetMetaData, page, returnType = MetaData)
+method setChapterSequence*(this: SNovel, page: string) =
+  this.chapters = this.script.intr.invoke(GetChapterSequence, returnType = seq[Chapter])
+method setMetaData*(this: SNovel) =
+  this.metaData = getMetaData(this)
+method setChapterSequence*(this: SNovel) =
+  this.chapters = getChapterSequence(this)
+# getHomeCarousel should probably return a seq[MetaData] that is later consumed by getChapterSequence to get a download
+method getHomeCarousel*(this: SNovel, page: string): seq[MetaData] =
+  return this.script.intr.invoke(GetHomeCarousel, page, returnType = seq[MetaData])
+method searchDownloader*(this: SNovel, str: string): seq[MetaData] =
+  if this.script == nil:
+    return searchDownloader(this, str)
+  return this.script.intr.invoke(Search, str, returnType = seq[MetaData])
 proc ParseInfoTuple(file: string): InfoTuple =
   var infoTuple: InfoTuple = (name: "", cover: "", scraperType: "", version: "", projectUri: "", siteUri: "", scriptPath: "")
   var lines = file.splitLines
