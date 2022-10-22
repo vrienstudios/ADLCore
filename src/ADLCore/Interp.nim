@@ -33,13 +33,19 @@ method getNodes*(this: SNovel, chapter: string): seq[TiNode] =
   if this.script == nil:
     return getNodes(this, chapter)
   return this.script.intr.invoke(GetNodes, chapter, returnType = seq[TiNode])
-method setMetaData*(this: SNovel, page: string) =
-  this.metaData = this.script.intr.invoke(GetMetaData, page, returnType = MetaData)
-method setChapterSequence*(this: SNovel, page: string) =
-  this.chapters = this.script.intr.invoke(GetChapterSequence, returnType = seq[Chapter])
+#method setMetaData*(this: SNovel, page: string) =
+#  this.metaData = this.script.intr.invoke(GetMetaData, page, returnType = MetaData)
+#method setChapterSequence*(this: SNovel, page: string) =
+#  this.chapters = this.script.intr.invoke(GetChapterSequence, returnType = seq[Chapter])
 method setMetaData*(this: SNovel) =
+  if this.script == nil:
+    this.metaData = getMetaData(this.script, "")
+    return
   this.metaData = getMetaData(this)
 method setChapterSequence*(this: SNovel) =
+  if this.script == nil:
+    this.chapters = getChapterSequence(this.script, "")
+    return
   this.chapters = getChapterSequence(this)
 # getHomeCarousel should probably return a seq[MetaData] that is later consumed by getChapterSequence to get a download
 method getHomeCarousel*(this: SNovel, page: string): seq[MetaData] =
@@ -133,7 +139,7 @@ exportTo(ADLNovel,
 
 const novelInclude = implNimScriptModule(ADLNovel)
 
-proc GenNewScript*(path: string): NScript =
+proc GenNewScript*(path: string, defPage: string): NScript =
   var script: NScript = NScript()
   let scr = NimScriptPath(path)
   script.intr = loadScript(scr, novelInclude)
@@ -143,5 +149,6 @@ proc GenNewScript*(path: string): NScript =
   GC_unref hClient
   NScriptClient.add(cast[ptr HttpClient](hClient))
   script.intr.invoke(SetID, len(NScriptClient) - 1)
+  script.intr.invoke(SetDefPage, defPage)
   echo NScriptClient.len
   return script
