@@ -142,7 +142,7 @@ exportTo(ADLNovel,
 
 const novelInclude = implNimScriptModule(ADLNovel)
 
-proc GenNewScript*(path: string, defPage: string): NScript =
+proc GenNewScript*(path: string): NScript =
   var script: NScript = NScript()
   let scr = NimScriptPath(path)
   script.intr = loadScript(scr, novelInclude)
@@ -152,6 +152,5 @@ proc GenNewScript*(path: string, defPage: string): NScript =
   GC_unref hClient
   NScriptClient.add(cast[ptr HttpClient](hClient))
   script.intr.invoke(SetID, len(NScriptClient) - 1)
-  script.intr.invoke(SetDefPage, defPage)
   echo NScriptClient.len
   return script
