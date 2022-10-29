@@ -39,7 +39,7 @@ method getNodes*(this: SNovel, chapter: string): seq[TiNode] =
 #  this.chapters = this.script.intr.invoke(GetChapterSequence, returnType = seq[Chapter])
 method setMetaData*(this: SNovel) =
   if this.script == nil:
-    this.metaData = getMetaData(this.script, "")
+    this.metaData = getMetaData(this.script, this.defaultPage)
     return
   this.metaData = getMetaData(this)
 method setChapterSequence*(this: SNovel) =
@@ -54,6 +54,10 @@ method searchDownloader*(this: SNovel, str: string): seq[MetaData] =
   if this.script == nil:
     return searchDownloader(this, str)
   return this.script.intr.invoke(Search, str, returnType = seq[MetaData])
+method getDefHttpClient*(this: SNovel): HttpClient =
+  if this.script == nil:
+    return this.ourClient
+  return cast[HttpClient](NScriptClient[this.script.scriptID])
 proc ParseInfoTuple(file: string): InfoTuple =
   var infoTuple: InfoTuple = (name: "", cover: "", scraperType: "", version: "", projectUri: "", siteUri: "", scriptPath: "")
   var lines = file.splitLines
@@ -102,7 +106,6 @@ proc processHttpRequest(uri: string, scriptID: int, headers: seq[tuple[key: stri
     return sesh.pageSource()
   var reqHeaders: HttpHeaders = newHttpHeaders()
   var g: HttpClient = cast[HttpClient](NScriptClient[scriptID])
-  echo uri
   for i in headers:
     reqHeaders.add(i.key, i.value)
   g.headers = reqHeaders
