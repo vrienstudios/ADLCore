@@ -17,6 +17,8 @@ type
       metaData*: MetaData
       lastModified*: string
 
+      # Ay, yayayay
+      volumes*: seq[tuple[names: string, chapters: seq[Chapter]]]
       chapters*: seq[Chapter]
       currChapter*: int
 

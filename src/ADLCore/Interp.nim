@@ -117,28 +117,47 @@ proc processHttpRequest(uri: string, scriptID: int, headers: seq[tuple[key: stri
     else:
       return request.body
 
-proc GetHTMLNode*(node: XmlNode, path: varargs[tuple[key: string, attrs: seq[tuple[k, v: string]]]]): XmlNode =
-  var currentNode = node
-  for key in path:
-    var i: int = 0
-    for node in currentNode.items:
-      var aChk: seq[bool] = @[]
-      if node.kind != xnElement: continue
-      if node.tag != key.key: continue
-      if key.attrs.len > 0 and key.attrs[0].k == "nth" and parseInt(key.attrs[0].v) < i:
-        inc i
+
+proc attrEquivalenceCheck*(a, b: XmlNode): bool =
+  if a.attrs == nil and b.attrs == nil:
+    return true
+  if a.attrs == nil or b.attrs == nil:
+    return false
+  if a.attrs.len != b.attrs.len:
+    return false
+  for k in a.attrs.keys:
+    if b.attrs.hasKey(k):
+      if b.attrs[k] == a.attrs[k]:
         continue
-      for attr in key.attrs:
-        if node.attr(attr.k) == attr.v: aChk.add true
-      if len(aChk) != len(key.attrs): continue
-      currentNode = node
-      break
-  return currentNode
+    return false
+  return true
+proc checkEquivalence*(a, b: XmlNode): bool =
+  if a.kind == b.kind:
+    if a.kind == xnElement:
+      # Text comparison can happen somewhere else
+      if attrEquivalenceCheck(a, b) and a.tag == b.tag:
+        return true
+  return false
+proc recursiveNodeSearch*(x: XmlNode, n: XmlNode): XmlNode =
+  if $x == $n or checkEquivalence(x, n):
+    return x
+  for item in x.items:
+    if $item == $n or checkEquivalence(item, n):
+      return item
+    if item.kind != xnElement:
+      continue
+    let ni = recursiveNodeSearch(item, n)
+    if ni != nil:
+      return ni
+  return nil
+# Using strings as a workaround of the nnkSym error.
+proc SeekNode*(node: string, desiredNode: string): XmlNode =
+  return recursiveNodeSearch(parseHtml(node), parseHtml(desiredNode))
 
 exportTo(ADLNovel,
   InfoTuple, Status, TextKind, LanguageType, MetaData,
   ImageType, Image, TiNode, Chapter,
-  processHttpRequest)
+  processHttpRequest, SeekNode)
 
 const novelInclude = implNimScriptModule(ADLNovel)
 
