@@ -14,6 +14,8 @@ type
     intr: Option[Interpreter]
   SNovel* = ref object of Novel
     script*: NScript
+  SVideo* = ref object of Video
+    script*: NScript
 var NScripts: seq[NScript] = @[]
 var NScriptClient: seq[ptr HttpClient] = @[]
 
@@ -33,23 +35,54 @@ method getNodes*(this: SNovel, chapter: string): seq[TiNode] =
   if this.script == nil:
     return getNodes(this, chapter)
   return this.script.intr.invoke(GetNodes, chapter, returnType = seq[TiNode])
+
+# Video Specific
+method getStream*(this: NScript): HLSStream =
+  return this.intr.invoke(getStream, returnType = HLSStream)
+method getEpisodeSequence*(this: NScript): seq[MetaData] =
+  return this.intr.invoke(getStream, returnType = seq[MetaData])
+method getResolutions*(this: NSCript): seq[MediaStreamTuple] =
+  return this.intr.invoke(getResolution, returnType = seq[MediaStreamTuple])
+method selResolution*(this: NScript, azul: MediaStreamTuple): bool =
+  return this.intr.invoke(selResolution, azul, returnType = bool)
+
+  # Changed to 'get' next video/audio part, since it may be better to just retrieve the data rather than writing to disk directly.
+  # However, without rewriting portions of the build in functions, please don't use this.
+  # It's mainly just a proof of concept right now.
+method getNextVideoPart*(this: NScript): string =
+  return this.intr.invoke(getNextVideoPart, returnType = bool)
+method getNextAudioPart*(this: NScript): string =
+  return this.intr.invoke(getNextAudioPart, returnType = bool)
+
+# Video Specific SVideo functions
+method setMetaData*(this: SVideo) =
+  if this.script != nil:
+    this.metaData = getMetaData(this.script, this.defaultPage)
+    return
+  this.metaData = getMetaData(this)
+#method
+#method setEpisodeSequence*(this: SVideo) =
+#  if this.script == nil:
 #method setMetaData*(this: SNovel, page: string) =
 #  this.metaData = this.script.intr.invoke(GetMetaData, page, returnType = MetaData)
 #method setChapterSequence*(this: SNovel, page: string) =
 #  this.chapters = this.script.intr.invoke(GetChapterSequence, returnType = seq[Chapter])
 method setMetaData*(this: SNovel) =
-  if this.script == nil:
+  if this.script != nil:
     this.metaData = getMetaData(this.script, this.defaultPage)
     return
   this.metaData = getMetaData(this)
 method setChapterSequence*(this: SNovel) =
-  if this.script == nil:
+  if this.script != nil:
     this.chapters = getChapterSequence(this.script, "")
     return
   this.chapters = getChapterSequence(this)
 # getHomeCarousel should probably return a seq[MetaData] that is later consumed by getChapterSequence to get a download
 method getHomeCarousel*(this: SNovel, page: string): seq[MetaData] =
-  return this.script.intr.invoke(GetHomeCarousel, page, returnType = seq[MetaData])
+  if this.script != nil:
+    return this.script.getHomeCarousel(page)
+  return getHomeCarousel(this)
+
 method searchDownloader*(this: SNovel, str: string): seq[MetaData] =
   if this.script == nil:
     return searchDownloader(this, str)
