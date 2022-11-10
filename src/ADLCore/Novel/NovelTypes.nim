@@ -5,7 +5,7 @@ import std/[asyncdispatch, httpclient, xmltree, tables]
 type
   HeaderTuple* = tuple[headers: HttpHeaders, defaultPage: string, getNodes: proc(this: Novel, chapter: Chapter): seq[TiNode] {.nimcall.},
     getMetaData: proc(this: Novel): MetaData {.nimcall.}, getChapterSequence: proc(this: Novel): seq[Chapter] {.nimcall.},
-    getHomeCarousel: proc(this: Novel): seq[Novel] {.nimcall.}, searchDownloader: proc(this: Novel, str: string): seq[MetaData] {.nimcall.}]
+    getHomeCarousel: proc(this: Novel): seq[MetaData] {.nimcall.}, searchDownloader: proc(this: Novel, str: string): seq[MetaData] {.nimcall.}]
   Chapter* = ref object of RootObj
       name*: string
       number*: int
@@ -37,7 +37,7 @@ type
       # Function for setting chapters
       getChapterSequence: proc(this: Novel): seq[Chapter] {.nimcall.}
       # Function to get the home carousel of the downloader
-      getHomeCarousel: proc(this: Novel): seq[Novel] {.nimcall.}
+      getHomeCarousel: proc(this: Novel): seq[MetaData] {.nimcall.}
       # Function to get search information from
       searchDownloader: proc(this: Novel, str: string): seq[MetaData] {.nimcall.}
       # Function to get the data from the cover using ourClient
@@ -52,7 +52,7 @@ method getMetaData*(this: Novel): MetaData =
 method getChapterSequence*(this: Novel): seq[Chapter] =
   this.chapters = this.getChapterSequence(this)
   return this.chapters
-method getHomeCarousel*(this: Novel): seq[Novel] =
+method getHomeCarousel*(this: Novel): seq[MetaData] =
   return this.getHomeCarousel(this)
 method searchDownloader*(this: Novel, str: string): seq[MetaData] =
   return this.searchDownloader(this, str)

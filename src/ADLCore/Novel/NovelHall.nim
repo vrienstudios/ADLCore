@@ -1,4 +1,4 @@
-import ./NovelTypes
+import ../Interp
 import ../genericMediaTypes
 import EPUB/types
 import std/[httpclient, htmlparser, xmltree, strutils, strtabs, parseutils, sequtils]
@@ -114,8 +114,8 @@ proc ParseCarouselNodeToNovel(node: XmlNode): MetaData {.nimcall.} =
       continue
   return meta
 
-proc GetHomePage*(this: Novel): seq[Novel] {.nimcall.} =
-  var novels: seq[Novel] = @[]
+proc GetHomePage*(this: Novel): seq[MetaData] {.nimcall.} =
+  var novels: seq[MetaData] = @[]
   if this.currPage != "https://www.novelhall.com":
     let content = this.ourClient.getContent("https://www.novelhall.com")
     this.page = parseHtml(content)
@@ -127,7 +127,7 @@ proc GetHomePage*(this: Novel): seq[Novel] {.nimcall.} =
       break
   for n in homeSel.items:
     if n.kind == xnElement and n.tag == "li":
-      novels.add(Novel(metaData: ParseCarouselNodeToNovel(n)))
+      novels.add(ParseCarouselNodeToNovel(n))
   return novels
 
 # Returns basic novel objects without MetaData.

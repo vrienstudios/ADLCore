@@ -50,29 +50,29 @@ type
     downloadNextAudioPart: proc(this: Video, path: string): bool
 
 # Wrappers for the functions.
-method getStream*(this: Video): HLSStream =
+method getStream*(this: Video): HLSStream {.base.} =
   this.hlsStream = this.getStream(this)
   return this.hlsStream
-method listResolution*(this: Video): seq[MediaStreamTuple] =
+method listResolution*(this: Video): seq[MediaStreamTuple] {.base.} =
   return this.listResolution(this)
-method selResolution*(this: Video, tul: MediaStreamTuple) =
+method selResolution*(this: Video, tul: MediaStreamTuple) {.base.} =
   this.selResolution(this, tul)
-method downloadNextVideoPart*(this: Video, path: string): bool =
+method downloadNextVideoPart*(this: Video, path: string): bool {.base.} =
   return this.downloadNextVideoPart(this, path)
-method downloadNextAudioPart*(this: Video, path: string): bool =
+method downloadNextAudioPart*(this: Video, path: string): bool {.base.} =
   return this.downloadNextAudioPart(this, path)
-method getMetaData*(this: Video): MetaData =
+method getMetaData*(this: Video): MetaData {.base.} =
   this.metaData = this.getMetaData(this)
   return this.metaData
-method getEpisodeSequence*(this: Video): seq[MetaData] =
+method getEpisodeSequence*(this: Video): seq[MetaData] {.base.} =
   return this.getEpisodeSequence(this)
-method getHomeCarousel*(this: Video): seq[MetaData] =
+method getHomeCarousel*(this: Video): seq[MetaData] {.base.} =
   return this.getHomeCarousel(this)
-method searchDownloader*(this: Video, str: string): seq[MetaData] =
+method searchDownloader*(this: Video, str: string): seq[MetaData] {.base.} =
   return this.searchDownloader(this, str)
-method getNext*(this: Video): string {.nimcall.} =
+method getNext*(this: Video): string {.nimcall, base.} =
   return this.getNext(this)
-method Init*(this: Video, hTupe: HeaderTuple) =
+method Init*(this: Video, hTupe: HeaderTuple) {.base.}=
   this.ourClient = newHttpClient()
   this.ourClient.headers = hTupe[0]
   this.defaultPage =  hTupe[1]

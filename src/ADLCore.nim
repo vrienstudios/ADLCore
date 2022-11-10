@@ -1,4 +1,3 @@
-import ./ADLCore/Novel/NovelTypes
 import ./ADLCore/Novel/NovelHall
 import ./ADLCore/Video/VidStream, ./ADLCore/Video/VideoType, ./ADLCore/Video/HAnime, ./ADLCore/Novel/MangaKakalot
 import std/[os, asyncdispatch, strutils, dynlib, httpclient, tables, sharedtables]

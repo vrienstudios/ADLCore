@@ -1,8 +1,10 @@
 import nimscripter
 import genericMediaTypes
-import ./Novel/NovelTypes, ./Video/VideoType
+include ./Novel/NovelTypes
+import ./Video/VideoType
 import std/[httpclient, htmlparser, xmltree, strutils, strtabs, parseutils, sequtils]
 import EPUB/types
+import HLSManager
 import options, os, halonium
 import zippy
 
@@ -16,6 +18,17 @@ type
     script*: NScript
   SVideo* = ref object of Video
     script*: NScript
+
+converter toSNovel*(x: Novel): SNovel =
+  SNovel(isOwnedByScript: x.isOwnedByScript,
+    metaData: x.metaData, lastModified: x.lastModified,
+    volumes: x.volumes, chapters: x.chapters, currChapter: x.currChapter,
+    ourClient: x.ourClient, page: x.page, defaultHeaders: x.defaultHeaders,
+    defaultPage: x.defaultPage, currPage: x.currPage,
+    init: x.init, getNodes: x.getNodes, getMetaData: x.getMetaData,
+    getChapterSequence: x.getChapterSequence, getHomeCarousel: x.getHomeCarousel,
+    searchDownloader: x.searchDownloader, getCover: x.getCover)
+
 var NScripts: seq[NScript] = @[]
 var NScriptClient: seq[ptr HttpClient] = @[]
 
@@ -50,9 +63,9 @@ method selResolution*(this: NScript, azul: MediaStreamTuple): bool =
   # However, without rewriting portions of the build in functions, please don't use this.
   # It's mainly just a proof of concept right now.
 method getNextVideoPart*(this: NScript): string =
-  return this.intr.invoke(getNextVideoPart, returnType = bool)
+  return this.intr.invoke(getNextVideoPart, returnType = string)
 method getNextAudioPart*(this: NScript): string =
-  return this.intr.invoke(getNextAudioPart, returnType = bool)
+  return this.intr.invoke(getNextAudioPart, returnType = string)
 
 # Video Specific SVideo functions
 method setMetaData*(this: SVideo) =
@@ -134,8 +147,6 @@ proc processHttpRequest(uri: string, scriptID: int, headers: seq[tuple[key: stri
     # Will currenctly default to chromium, since I believe that network stack is less likely to be blocked due to fingerprinting.
     var sesh = createSession(Chromium, browserOptions=chromeOptions(args=["--headless", "--user-agent=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/105.0.0.0 Safari/537.36"]), hideDriverConsoleWindow=true)
     sesh.navigate uri
-    echo sesh.pageSource()
-    echo uri
     return sesh.pageSource()
   var reqHeaders: HttpHeaders = newHttpHeaders()
   var g: HttpClient = cast[HttpClient](NScriptClient[scriptID])
@@ -184,8 +195,8 @@ proc recursiveNodeSearch*(x: XmlNode, n: XmlNode): XmlNode =
       return ni
   return nil
 # Using strings as a workaround of the nnkSym error.
-proc SeekNode*(node: string, desiredNode: string): XmlNode =
-  return recursiveNodeSearch(parseHtml(node), parseHtml(desiredNode))
+proc SeekNode*(node: string, desiredNode: string): string =
+  return $recursiveNodeSearch(parseHtml(node), parseHtml(desiredNode))
 
 exportTo(ADLNovel,
   InfoTuple, Status, TextKind, LanguageType, MetaData,
