@@ -44,8 +44,8 @@ type
       getCover: proc (this: Novel): string {.nimcall.}
 
 # Function 'wrappers' to call the functions in a more logical manner.
-method getNodes*(this: Novel, chapter: Chapter): seq[TiNode] =
-  return this.getNodes(this, chapter)
+method getNodes*(nvl: Novel, chapter: Chapter): seq[TiNode] =
+  return nvl.getNodes(nvl, chapter)
 method getMetaData*(this: Novel): MetaData =
   this.metaData = this.getMetaData(this)
   return this.metaData

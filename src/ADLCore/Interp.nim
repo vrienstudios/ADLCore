@@ -32,7 +32,7 @@ converter toSNovel*(x: Novel): SNovel =
 var NScripts: seq[NScript] = @[]
 var NScriptClient: seq[ptr HttpClient] = @[]
 
-method getNodes*(this: Nscript, chapter: string): seq[TiNode] =
+method getNodes*(this: Nscript, chapter: Chapter): seq[TiNode] =
   return this.intr.invoke(GetNodes, chapter, returnType = seq[TiNode])
 method getMetaData*(this: Nscript, page: string): MetaData =
   return this.intr.invoke(GetMetaData, page, returnType = MetaData)
@@ -44,9 +44,9 @@ method getHomeCarousel*(this: Nscript, page: string): seq[MetaData] =
 method searchDownloader*(this: Nscript, str: string): seq[MetaData] =
   return this.intr.invoke(Search, str, returnType = seq[MetaData])
 # May be a bit repetitive, but those relating directly to the script, may be deprecated in the future.
-method getNodes*(this: SNovel, chapter: string): seq[TiNode] =
+method getNodes*(this: SNovel, chapter: Chapter): seq[TiNode] =
   if this.script == nil:
-    return getNodes(this, chapter)
+    return getNodes(nvl = Novel(this), chapter = chapter)
   return this.script.intr.invoke(GetNodes, chapter, returnType = seq[TiNode])
 
 # Video Specific
