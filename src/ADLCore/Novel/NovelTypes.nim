@@ -31,7 +31,7 @@ type
       # Function for initiating the lower object.
       init: proc(this: Novel, uri: string) {.nimcall.}
       # Function for returning all TiNodes associated with chapters.
-      getNodes: proc(this: Novel, chapter: Chapter): seq[TiNode] {.nimcall.}
+      GgetNodes: proc(this: Novel, chapter: Chapter): seq[TiNode] {.nimcall.}
       # Function for setting MetaData
       getMetaData: proc(this: Novel): MetaData {.nimcall.}
       # Function for setting chapters
@@ -45,7 +45,7 @@ type
 
 # Function 'wrappers' to call the functions in a more logical manner.
 method getNodes*(nvl: Novel, chapter: Chapter): seq[TiNode] =
-  return nvl.getNodes(nvl, chapter)
+  return nvl.GgetNodes(nvl, chapter)
 method getMetaData*(this: Novel): MetaData =
   this.metaData = this.getMetaData(this)
   return this.metaData
@@ -60,7 +60,7 @@ method searchDownloader*(this: Novel, str: string): seq[MetaData] =
 method setTuple*(this: Novel, hTuple: HeaderTuple) =
   this.defaultHeaders = hTuple[0]
   this.defaultPage = hTuple[1]
-  this.getNodes = hTuple[2]
+  this.GgetNodes = hTuple[2]
   this.getMetaData = hTuple[3]
   this.getChapterSequence = hTuple[4]
   this.getHomeCarousel = hTuple[5]

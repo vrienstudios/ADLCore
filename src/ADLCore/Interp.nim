@@ -25,7 +25,7 @@ converter toSNovel*(x: Novel): SNovel =
     volumes: x.volumes, chapters: x.chapters, currChapter: x.currChapter,
     ourClient: x.ourClient, page: x.page, defaultHeaders: x.defaultHeaders,
     defaultPage: x.defaultPage, currPage: x.currPage,
-    init: x.init, getNodes: x.getNodes, getMetaData: x.getMetaData,
+    init: x.init, GgetNodes: x.GgetNodes, getMetaData: x.getMetaData,
     getChapterSequence: x.getChapterSequence, getHomeCarousel: x.getHomeCarousel,
     searchDownloader: x.searchDownloader, getCover: x.getCover)
 
@@ -46,7 +46,7 @@ method searchDownloader*(this: Nscript, str: string): seq[MetaData] =
 # May be a bit repetitive, but those relating directly to the script, may be deprecated in the future.
 method getNodes*(this: SNovel, chapter: Chapter): seq[TiNode] =
   if this.script == nil:
-    return getNodes(nvl = Novel(this), chapter = chapter)
+    return this.GgetNodes(Novel(this),  chapter)
   return this.script.intr.invoke(GetNodes, chapter, returnType = seq[TiNode])
 
 # Video Specific
