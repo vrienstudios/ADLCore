@@ -27,14 +27,57 @@ proc SetHLSStream*(this: Video): HLSStream {.nimcall.} =
     let aKey = "25742532592138496744665879883281"
 
     var dctx: CBC[aes256]
-    var idx: int = 0
     var dText: string = newString(len(dataKey))
     dctx.init(aKey, aIV)
     dctx.decrypt(dataKey, dText)
+    dctx.clear()
     # Confirmed working, 11/29/22
     # Grabs a portion of the url we need.
-
-    assert dataKey != ""
+    #_0x58d62f = CryptoJS[_0x4926d4(0xda)][_0x4926d4(0xde)][_0x4926d4(0xf4)](_0x165ec2), % "Stringifies" decrypted url
+    #_0x525c8e = _0x58d62f[_0x4926d4(0xeb)](0x0, _0x58d62f['indexOf']('&')); % 0 -> '&'
+    let andOdText: int = dText.find('&') - 1
+    var substr = dText[0..andOdText]
+    #$[_0x4926d4(0xc3)](_0x4926d4(0xc4) + CryptoJS[_0x4926d4(0xcf)][_0x4926d4(0xe4)](_0x525c8e, CryptoJS[_0x4926d4(0xda)][_0x4926d4(0xde)][_0x4926d4(0xe1)](_0x4405f4), {
+    #'iv': CryptoJS['enc']['Utf8'][_0x4926d4(0xe1)](_0x48af28)
+    # Gets Json from /encrypt-ajax.php?id= {encrypted substr}
+    # Text = dText
+    # Key = _0x4405f4
+    #   _0x43376d + _0x5c718f + _0x344515
+    #   25742532592 + 1384967446658 + 79883281 (aKey)
+    # Iv = _0x48af28 or (aIV)
+    var ectx: CBC[aes256]
+    let paddingLength = aes128.sizeBlock - (len(substr) mod aes128.sizeBlock)
+    var paddingType: byte = 0x0
+    var eng = newString(substr.len + paddingLength)
+    copyMem(addr eng[0], addr substr[0], len(substr))
+    var idx: int = 0
+    while idx < paddingLength:
+      copyMem(addr eng[len(substr) + idx], addr paddingType, 1)
+      inc idx
+    var aID: string = newString(len(eng))
+    ectx.init(aKey, aIV)
+    ectx.encrypt(eng, aID)
+    ectx.clear()
+    # + _0x58d62f[_0x4926d4(0xeb)](_0x58d62f[_0x4926d4(0xef)]('&')) + _0x4926d4(0xd4) + _0x525c8e, function(_0x38e390) {
+    # + dText.substr('&') + &alias= + substr, (function for decrypting returned content?)
+    let builtData: string =
+      "https://membed.net" & "/encrypt-ajax.php?id=" & aID.encode & dText[andOdText..^1] & "&alias=" & substr
+    this.ourClient.headers = newHttpHeaders({
+      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:101.0) Gecko/20100101 Firefox/101.0",
+      "Referer": "https://membed.net/streaming.php",
+      "x-requested-with": "XMLHttpRequest",
+      "Accept": "*/*",
+      "Accept-Encoding": "identity",
+    })
+    let encJson = jsonParse(this.ourClient.getContent(builtData))["data"].getStr().decode()
+    #0x549f1f = JSON['parse'](CryptoJS[_0x52c834(0xda)][_0x52c834(0xde)][_0x52c834(0xf4)](CryptoJS['AES'][_0x52c834(0xd1)](_0x38e390[_0x52c834(0xe6)], CryptoJS[_0x52c834(0xda)][_0x52c834(0xde)]['parse'](_0x4405f4), {
+    #    'iv': CryptoJS[_0x52c834(0xda)][_0x52c834(0xde)]['parse'](_0x48af28)
+    #}))); Decrypts the json and parses it to 0x549f1f, same key/iv as others.
+    dctx.init(aKey, aIV)
+    var decJson: string = newString(encJson.len)
+    dctx.decrypt(encJson, decJson)
+    dctx.clear()
+    # Encrption over.
     return this.hlsStream
 
 proc GetMetaData(this: Video): MetaData {.nimcall.} =
