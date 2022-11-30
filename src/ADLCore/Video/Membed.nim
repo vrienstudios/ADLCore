@@ -35,8 +35,8 @@ proc SetHLSStream*(this: Video): HLSStream {.nimcall.} =
     # Grabs a portion of the url we need.
     #_0x58d62f = CryptoJS[_0x4926d4(0xda)][_0x4926d4(0xde)][_0x4926d4(0xf4)](_0x165ec2), % "Stringifies" decrypted url
     #_0x525c8e = _0x58d62f[_0x4926d4(0xeb)](0x0, _0x58d62f['indexOf']('&')); % 0 -> '&'
-    let andOdText: int = dText.find('&') - 1
-    var substr = dText[0..andOdText]
+    let andOdText: int = dText.find('&')
+    var substr = dText[0..andOdText - 1]
     #$[_0x4926d4(0xc3)](_0x4926d4(0xc4) + CryptoJS[_0x4926d4(0xcf)][_0x4926d4(0xe4)](_0x525c8e, CryptoJS[_0x4926d4(0xda)][_0x4926d4(0xde)][_0x4926d4(0xe1)](_0x4405f4), {
     #'iv': CryptoJS['enc']['Utf8'][_0x4926d4(0xe1)](_0x48af28)
     # Gets Json from /encrypt-ajax.php?id= {encrypted substr}
