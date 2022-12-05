@@ -45,7 +45,6 @@ proc ScanForScriptsInfoTuple*(folderPath: string): seq[Interp.InfoTuple] =
   for n in walkFiles(folderPath & "*.nims"):
     var tup = ReadScriptInfoTuple(n)
     scripts.add(tup)
-    echo $tup
   return scripts
 
 #let script = GenNewScript(ScanForScriptsInfoTuple("/mnt/General/work/Programming/ADLCore/src/")[0])
