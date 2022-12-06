@@ -1,5 +1,5 @@
 import ./ADLCore/Novel/NovelHall
-import ./ADLCore/Video/VidStream, ./ADLCore/Video/VideoType, ./ADLCore/Video/HAnime, ./ADLCore/Novel/MangaKakalot
+import ./ADLCore/Video/VidStream, ./ADLCore/Video/Membed, ./ADLCore/Video/VideoType, ./ADLCore/Video/HAnime, ./ADLCore/Novel/MangaKakalot
 import std/[os, asyncdispatch, strutils, dynlib, httpclient, tables, sharedtables]
 import ./ADLCore/genericMediaTypes
 import EPUB
@@ -31,6 +31,10 @@ proc GenerateNewVideoInstance*(site: string, uri: string): Video =
   case site:
     of "vidstreamAni":
       let hTup = VidStream.Init(uri)
+      aniObj = Video()
+      aniObj.Init(hTup)
+    of "Membed":
+      let hTup = Membed.Init(uri)
       aniObj = Video()
       aniObj.Init(hTup)
     of "HAnime":

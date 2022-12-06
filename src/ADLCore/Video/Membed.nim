@@ -69,7 +69,7 @@ proc SetHLSStream*(this: Video): HLSStream {.nimcall.} =
       "Accept": "*/*",
       "Accept-Encoding": "identity",
     })
-    let encJson = jsonParse(this.ourClient.getContent(builtData))["data"].getStr().decode()
+    let encJson = parseJson(this.ourClient.getContent(builtData))["data"].getStr().decode()
     #0x549f1f = JSON['parse'](CryptoJS[_0x52c834(0xda)][_0x52c834(0xde)][_0x52c834(0xf4)](CryptoJS['AES'][_0x52c834(0xd1)](_0x38e390[_0x52c834(0xe6)], CryptoJS[_0x52c834(0xda)][_0x52c834(0xde)]['parse'](_0x4405f4), {
     #    'iv': CryptoJS[_0x52c834(0xda)][_0x52c834(0xde)]['parse'](_0x48af28)
     #}))); Decrypts the json and parses it to 0x549f1f, same key/iv as others.
@@ -78,6 +78,12 @@ proc SetHLSStream*(this: Video): HLSStream {.nimcall.} =
     dctx.decrypt(encJson, decJson)
     dctx.clear()
     # Encrption over.
+    # Please note, there was a problem parsing this json in Vidstream, so I am assuming the problem exists here too.
+    # Also, remove all the random '\' characters.
+    decJson = decJson.replace("\\")
+    let url = decJson.split('"')[5]
+    let parts: seq[string] = this.ourClient.getContent(url).split('\n')
+    this.hlsStream = ParseManifest(parts, url[0..^(url.split('/')[^1].len + 1)])
     return this.hlsStream
 
 proc GetMetaData(this: Video): MetaData {.nimcall.} =
