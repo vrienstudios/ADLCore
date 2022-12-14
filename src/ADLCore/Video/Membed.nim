@@ -176,7 +176,7 @@ proc ListResolutions(this: Video): seq[MediaStreamTuple] {.nimcall.} =
 proc DownloadNextVideoPart(this: Video, path: string): bool {.nimcall.} =
   this.ourClient.headers = newHttpHeaders({
       "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:101.0) Gecko/20100101 Firefox/101.0",
-      "Referer": "https://gogoplay1.com/streaming.php",
+      "Referer": "https://membed.net/streaming.php",
       "x-requested-with": "XMLHttpRequest",
       "Accept": "*/*",
       "Accept-Encoding": "identity",
@@ -206,7 +206,7 @@ proc DownloadNextVideoPart(this: Video, path: string): bool {.nimcall.} =
 proc DownloadNextAudioPart(this: Video, path: string): bool {.nimcall.} =
   this.ourClient.headers = newHttpHeaders({
       "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:101.0) Gecko/20100101 Firefox/101.0",
-      "Referer": "https://gogoplay1.com/streaming.php",
+      "Referer": "https://membed.net/streaming.php",
       "x-requested-with": "XMLHttpRequest",
       "Accept": "*/*",
       "Accept-Encoding": "identity",
@@ -227,7 +227,7 @@ proc DownloadNextAudioPart(this: Video, path: string): bool {.nimcall.} =
 proc Search*(this: Video, str: string): seq[MetaData] {.nimcall.} =
   this.ourClient.headers = newHttpHeaders({
         "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:101.0) Gecko/20100101 Firefox/101.0",
-        "Referer": "https://gogoplay1.com/",
+        "Referer": "https://membed.net/",
         "x-requested-with": "XMLHttpRequest",
         "Accept": "*/*",
         "Accept-Encoding": "identity",
@@ -265,9 +265,9 @@ proc getHomeCarousel(this: Video): seq[MetaData] {.nimcall.} =
 proc Init*(uri: string): HeaderTuple {.nimcall.} =
     let defaultHeaders = newHttpHeaders({
         "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:101.0) Gecko/20100101 Firefox/101.0",
-        "Referer": "https://gogoplay1.com",
+        "Referer": "https://membed.net",
         "Accept": "*/*",
-        "Origin": "https://gogoplay1.com",
+        "Origin": "https://membed.net",
         "Accept-Encoding": "identity",
         "sec-fetch-site": "same-origin",
         "sec-fetch-mode": "no-cors"
