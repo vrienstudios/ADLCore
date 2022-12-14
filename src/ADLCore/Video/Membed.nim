@@ -70,7 +70,6 @@ proc SetHLSStream*(this: Video): HLSStream {.nimcall.} =
       "Accept": "*/*",
       "Accept-Encoding": "identity",
     })
-    echo builtData
     let encJson = parseJson(this.ourClient.getContent(builtData))["data"].getStr().decode()
     #0x549f1f = JSON['parse'](CryptoJS[_0x52c834(0xda)][_0x52c834(0xde)][_0x52c834(0xf4)](CryptoJS['AES'][_0x52c834(0xd1)](_0x38e390[_0x52c834(0xe6)], CryptoJS[_0x52c834(0xda)][_0x52c834(0xde)]['parse'](_0x4405f4), {
     #    'iv': CryptoJS[_0x52c834(0xda)][_0x52c834(0xde)]['parse'](_0x48af28)
