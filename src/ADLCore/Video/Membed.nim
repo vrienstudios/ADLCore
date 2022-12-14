@@ -8,6 +8,7 @@ import VideoType
 
 # Grab the HLS stream for the current video, and sets the stream property for VidStream
 proc SetHLSStream*(this: Video): HLSStream {.nimcall.} =
+    let activePage: string = this.currPage
     let streamingUri: string = "https:" & this.page.findAll("iframe")[0].attr("src")
     this.currPage = streamingUri
     this.page = parseHtml(this.ourClient.getContent(streamingUri))
@@ -60,8 +61,8 @@ proc SetHLSStream*(this: Video): HLSStream {.nimcall.} =
     ectx.clear()
     # + _0x58d62f[_0x4926d4(0xeb)](_0x58d62f[_0x4926d4(0xef)]('&')) + _0x4926d4(0xd4) + _0x525c8e, function(_0x38e390) {
     # + dText.substr('&') + &alias= + substr, (function for decrypting returned content?)
-    let builtData: string =
-      "https://membed.net" & "/encrypt-ajax.php?id=" & aID.encode & dText[andOdText..^1] & "&alias=" & substr
+    var builtData: string =
+      ("https://membed.net" & "/encrypt-ajax.php?id=" & aID.encode & dText[andOdText..^1] & "&refer=" & activePage & "&alias=" & substr.split('/')[0]).replace("\r", "").replace("\n", "")
     this.ourClient.headers = newHttpHeaders({
       "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:101.0) Gecko/20100101 Firefox/101.0",
       "Referer": "https://membed.net/streaming.php",
@@ -69,6 +70,7 @@ proc SetHLSStream*(this: Video): HLSStream {.nimcall.} =
       "Accept": "*/*",
       "Accept-Encoding": "identity",
     })
+    echo builtData
     let encJson = parseJson(this.ourClient.getContent(builtData))["data"].getStr().decode()
     #0x549f1f = JSON['parse'](CryptoJS[_0x52c834(0xda)][_0x52c834(0xde)][_0x52c834(0xf4)](CryptoJS['AES'][_0x52c834(0xd1)](_0x38e390[_0x52c834(0xe6)], CryptoJS[_0x52c834(0xda)][_0x52c834(0xde)]['parse'](_0x4405f4), {
     #    'iv': CryptoJS[_0x52c834(0xda)][_0x52c834(0xde)]['parse'](_0x48af28)
