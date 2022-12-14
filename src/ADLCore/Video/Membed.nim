@@ -47,7 +47,7 @@ proc SetHLSStream*(this: Video): HLSStream {.nimcall.} =
     # Iv = _0x48af28 or (aIV)
     var ectx: CBC[aes256]
     let paddingLength = aes128.sizeBlock - (len(substr) mod aes128.sizeBlock)
-    var paddingType: byte = 0x0
+    var paddingType: byte = byte paddingLength
     var eng = newString(substr.len + paddingLength)
     copyMem(addr eng[0], addr substr[0], len(substr))
     var idx: int = 0
