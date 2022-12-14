@@ -232,15 +232,15 @@ proc Search*(this: Video, str: string): seq[MetaData] {.nimcall.} =
         "Accept": "*/*",
         "Accept-Encoding": "identity",
   })
-  let content = this.ourClient.getContent("https://gogoplay1.com/ajax-search.html?keyword=" & str & "&id=-1")
+  let content = this.ourClient.getContent("https://membed.net/search.html?keyword=" & str)
   let json = parseJson(content)
   var results: seq[MetaData] = @[]
   this.page = parseHtml(json["content"].getStr())
-  this.currPage = "https://gogoplay1.com"
+  this.currPage = "https://membed.net"
   for a in this.page.findAll("a"):
     var data = MetaData()
     data.name = a.innerText
-    data.uri = "https://gogoplay1.com" & a.attr("href")
+    data.uri = "https://membed.net" & a.attr("href")
     results.add(data)
   return results
 
