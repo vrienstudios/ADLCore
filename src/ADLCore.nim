@@ -1,6 +1,5 @@
-import ./ADLCore/Novel/NovelTypes
 import ./ADLCore/Novel/NovelHall
-import ./ADLCore/Video/VidStream, ./ADLCore/Video/VideoType, ./ADLCore/Video/HAnime, ./ADLCore/Novel/MangaKakalot
+import ./ADLCore/Video/VidStream, ./ADLCore/Video/Membed, ./ADLCore/Video/VideoType, ./ADLCore/Video/HAnime, ./ADLCore/Novel/MangaKakalot
 import std/[os, asyncdispatch, strutils, dynlib, httpclient, tables, sharedtables]
 import ./ADLCore/genericMediaTypes
 import EPUB
@@ -34,6 +33,10 @@ proc GenerateNewVideoInstance*(site: string, uri: string): Video =
       let hTup = VidStream.Init(uri)
       aniObj = Video()
       aniObj.Init(hTup)
+    of "Membed":
+      let hTup = Membed.Init(uri)
+      aniObj = Video()
+      aniObj.Init(hTup)
     of "HAnime":
       let hTup = HAnime.Init(uri)
       aniObj = Video()
@@ -46,7 +49,6 @@ proc ScanForScriptsInfoTuple*(folderPath: string): seq[Interp.InfoTuple] =
   for n in walkFiles(folderPath & "*.nims"):
     var tup = ReadScriptInfoTuple(n)
     scripts.add(tup)
-    echo $tup
   return scripts
 
 #let script = GenNewScript(ScanForScriptsInfoTuple("/mnt/General/work/Programming/ADLCore/src/")[0])
@@ -55,6 +57,6 @@ proc ScanForScriptsInfoTuple*(folderPath: string): seq[Interp.InfoTuple] =
 #echo mdata.author
 
 # Testing code for scripts (do NOT build projects with this code included)
-var lam = ScanForScriptsInfoTuple("./")
-for l in lam:
-  var sc = GenNewScript("./" & l.name & ".nims")
+#var lam = ScanForScriptsInfoTuple("./")
+#for l in lam:
+#  var sc = GenNewScript("./" & l.name & ".nims")

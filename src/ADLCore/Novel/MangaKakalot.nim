@@ -1,4 +1,4 @@
-import ./NovelTypes
+import ../Interp
 import ../genericMediaTypes
 import EPUB/[types, genericHelpers]
 import std/[httpclient, htmlparser, xmltree, strutils, strtabs, parseutils, sequtils, enumutils, json]
@@ -126,8 +126,8 @@ proc GetChapterSequence*(this: Novel): seq[Chapter] {.nimcall.} =
       dec i
     return chapters
 
-proc GetHomePage*(this: Novel): seq[Novel] =
-  var novels: seq[Novel] = @[]
+proc GetHomePage*(this: Novel): seq[MetaData] =
+  var novels: seq[MetaData] = @[]
   return novels
 
 # Returns basic novel objects without MetaData.
