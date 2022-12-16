@@ -1,6 +1,6 @@
 # Package
 
-version       = "0.1.5"
+version       = "0.1.6"
 author        = "ShujianDou"
 description   = "Novel, Video, and Anime scraper"
 license       = "Proprietary"
@@ -9,7 +9,7 @@ srcDir        = "src"
 # Tasks
 task test, "Test ADLCore Functionality":
   withDir "tests":
-    exec "nim c -d:ssl -r tester"
+    exec "nim c -d:ssl --threads:on -r tester"
 
 # Dependencies
 
