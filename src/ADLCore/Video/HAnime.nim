@@ -30,7 +30,7 @@ proc Search*(this: Video, str: string): seq[MetaData] =
   for i in jsonData:
     var met: MetaData = MetaData()
     met.name = i["name"].getStr()
-    met.uri = "https//HAnime.tv/videos/hentai/" & i["slug"].getStr()
+    met.uri = "https://HAnime.tv/videos/hentai/" & i["slug"].getStr()
     met.coverUri = i["cover_url"].getStr()
     met.series = i["brand"].getStr()
     # Contains <p> html element.
@@ -39,7 +39,6 @@ proc Search*(this: Video, str: string): seq[MetaData] =
     for tag in i["tags"].getElems():
       tags.add(tag.getStr())
     met.genre = tags
-    echo met.name
     data.add(met)
   return data
 proc GetMetaData*(this: Video): MetaData =
