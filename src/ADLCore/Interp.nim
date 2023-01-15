@@ -100,10 +100,12 @@ method searchDownloader*(this: SNovel, str: string): seq[MetaData] =
   if this.script == nil:
     return searchDownloader(this, str)
   return this.script.intr.invoke(Search, str, returnType = seq[MetaData])
+
 method getDefHttpClient*(this: SNovel): HttpClient =
   if this.script == nil:
     return this.ourClient
   return cast[HttpClient](NScriptClient[this.script.scriptID])
+
 proc ParseInfoTuple(file: string): InfoTuple =
   var infoTuple: InfoTuple = (name: "", cover: "", scraperType: "", version: "", projectUri: "", siteUri: "", scriptPath: "")
   var lines = file.splitLines
@@ -138,6 +140,7 @@ proc ReadScriptInfoTuple*(path: string): InfoTuple =
   var infoTuple = ParseInfoTuple(readFile(path))
   infoTuple.scriptPath = path
   return infoTuple
+
 proc processHttpRequest(uri: string, scriptID: int, headers: seq[tuple[key: string, value: string]], mimicBrowser: bool = false): string =
   if mimicBrowser:
     # TODO: When windows, verify browsers installed
@@ -160,7 +163,6 @@ proc processHttpRequest(uri: string, scriptID: int, headers: seq[tuple[key: stri
       return "404"
     else:
       return request.body
-
 
 proc attrEquivalenceCheck*(a, b: XmlNode): bool =
   if a.attrs == nil and b.attrs == nil:
@@ -213,7 +215,7 @@ proc GenNewScript*(path: string): NScript =
   NScripts.add script
   var hClient = newHttpClient()
   GC_unref hClient
+  script.intr.invoke(SetID, len(NScriptClient))
   NScriptClient.add(cast[ptr HttpClient](hClient))
-  script.intr.invoke(SetID, len(NScriptClient) - 1)
   echo NScriptClient.len
   return script

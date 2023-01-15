@@ -46,7 +46,7 @@ proc GenerateNewVideoInstance*(site: string, uri: string): Video =
   return aniObj
 proc ScanForScriptsInfoTuple*(folderPath: string): seq[Interp.InfoTuple] =
   var scripts: seq[Interp.InfoTuple] = @[]
-  for n in walkFiles(folderPath & "*.nims"):
+  for n in walkFiles(folderPath / "*.nims"):
     var tup = ReadScriptInfoTuple(n)
     scripts.add(tup)
   return scripts
