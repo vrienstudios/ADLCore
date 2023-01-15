@@ -2,8 +2,7 @@ import ./ADLCore/Novel/NovelHall
 import ./ADLCore/Video/VidStream, ./ADLCore/Video/Membed, ./ADLCore/Video/VideoType, ./ADLCore/Video/HAnime, ./ADLCore/Novel/MangaKakalot
 import std/[os, asyncdispatch, strutils, dynlib, httpclient, tables, sharedtables]
 import ./ADLCore/genericMediaTypes
-import EPUB
-import EPUB/types
+import EPUB/EPUB3
 import nimscripter
 import ./ADLCore/Interp
 
