@@ -1,4 +1,4 @@
-import ../Interp
+import ./NovelTypes
 import ../genericMediaTypes
 import EPUB/[types, genericHelpers]
 import std/[httpclient, htmlparser, xmltree, strutils, strtabs, parseutils, sequtils, enumutils, json]

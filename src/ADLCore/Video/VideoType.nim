@@ -7,7 +7,7 @@ type
     getMetaData: proc(this: Video): MetaData {.nimcall.},
     getEpisodeSequence: proc(this: Video): seq[MetaData] {.nimcall.},
     getHomeCarousel: proc(this: Video): seq[MetaData] {.nimcall.},
-    searchDownloader: proc(this: Video, str: string): seq[MetaData] {.nimcall.},
+    searchDownloader: proc(this: Video, str: string): seq[MetaData] {.nimcall, gcsafe.},
     selResolution: proc(this: Video, tul: MediaStreamTuple) {.nimcall.},
     listResolution: proc(this: Video): seq[MediaStreamTuple] {.nimcall.},
     downloadNextVideoPart: proc(this: Video, path: string) : bool {.nimcall.},
@@ -36,7 +36,7 @@ type
     # Function for getting the home page/carousel..
     getHomeCarousel: proc(this: Video): seq[MetaData] {.nimcall.}
     # Function for getting search information..
-    searchDownloader: proc(this: Video, str: string): seq[MetaData]
+    searchDownloader: proc(this: Video, str: string): seq[MetaData] {.gcsafe.}
     # Function for getting the cover from the downloader (Unused right now).
     getCover: proc(this: Video): string {.nimcall.}
     # Function for getting the next part or byte sequence in the stream in the form of a string.
@@ -68,7 +68,7 @@ method getEpisodeSequence*(this: Video): seq[MetaData] {.base.} =
   return this.getEpisodeSequence(this)
 method getHomeCarousel*(this: Video): seq[MetaData] {.base.} =
   return this.getHomeCarousel(this)
-method searchDownloader*(this: Video, str: string): seq[MetaData] {.base.} =
+method searchDownloader*(this: Video, str: string): seq[MetaData] {.base, gcsafe.} =
   return this.searchDownloader(this, str)
 method getNext*(this: Video): string {.nimcall, base.} =
   return this.getNext(this)

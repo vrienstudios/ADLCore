@@ -8,7 +8,7 @@ import VideoType
 var jContent: JsonNode
 var aesKey: string
 
-proc Search*(this: Video, str: string): seq[MetaData] =
+proc Search*(this: Video, str: string): seq[MetaData] {.gcsafe.} =
   # https://search.htv-services.com/
   let mSearchData = %*{
     "blacklist": [],

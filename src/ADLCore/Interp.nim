@@ -219,3 +219,10 @@ proc GenNewScript*(path: string): NScript =
   NScriptClient.add(cast[ptr HttpClient](hClient))
   echo NScriptClient.len
   return script
+
+proc ScanForScriptsInfoTuple*(folderPath: string): seq[Interp.InfoTuple] =
+  var scripts: seq[Interp.InfoTuple] = @[]
+  for n in walkFiles(folderPath / "*.nims"):
+    var tup = ReadScriptInfoTuple(n)
+    scripts.add(tup)
+  return scripts
