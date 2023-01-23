@@ -3,7 +3,7 @@ import ../genericMediaTypes
 import std/[asyncdispatch, httpclient, xmltree, tables]
 
 type
-  HeaderTuple* = tuple[headers: HttpHeaders, defaultPage: string, getNodes: proc(this: Novel, chapter: Chapter): seq[TiNode] {.nimcall.},
+  HeaderTuple* = tuple[headers: HttpHeaders, defaultPage: string, getNodes: proc(this: Novel, chapter: Chapter): seq[TiNode] {.nimcall, gcsafe.},
     getMetaData: proc(this: Novel): MetaData {.nimcall.}, getChapterSequence: proc(this: Novel): seq[Chapter] {.nimcall.},
     getHomeCarousel: proc(this: Novel): seq[MetaData] {.nimcall.}, searchDownloader: proc(this: Novel, str: string): seq[MetaData] {.nimcall.}]
   Chapter* = ref object of RootObj
@@ -31,7 +31,7 @@ type
       # Function for initiating the lower object.
       init: proc(this: Novel, uri: string) {.nimcall.}
       # Function for returning all TiNodes associated with chapters.
-      GgetNodes: proc(this: Novel, chapter: Chapter): seq[TiNode] {.nimcall.}
+      GgetNodes: proc(this: Novel, chapter: Chapter): seq[TiNode] {.nimcall, gcsafe.}
       # Function for setting MetaData
       getMetaData: proc(this: Novel): MetaData {.nimcall.}
       # Function for setting chapters
@@ -44,7 +44,7 @@ type
       getCover: proc (this: Novel): string {.nimcall.}
 
 # Function 'wrappers' to call the functions in a more logical manner.
-method getNodes*(nvl: Novel, chapter: Chapter): seq[TiNode] =
+method getNodes*(nvl: Novel, chapter: Chapter): seq[TiNode] {.gcsafe.} =
   return nvl.GgetNodes(nvl, chapter)
 method getMetaData*(this: Novel): MetaData =
   this.metaData = this.getMetaData(this)

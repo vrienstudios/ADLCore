@@ -14,9 +14,13 @@ proc GetNodes(this: Novel, chapter: Chapter): seq[TiNode] {.nimcall.} =
     this.page.findall("div", sequence)
     for n in sequence:
       if n.attr("class") == "entry-content":
+        var tinode: TiNode = TiNode(text: "")
         for a in n.items:
           if a.kind == xnText:
-            f.add(TiNode(text: a.innerText))
+            tinode.text.add a.innerText
+          elif a.kind == xnElement:
+            f.add tinode
+            tinode = TiNode(text: "")
         break
     return f
 
