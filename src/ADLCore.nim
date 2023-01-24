@@ -6,7 +6,7 @@ import ADLCore/Novel/NovelTypes
 import EPUB/EPUB3
 
 export NovelHall, MangaKakalot
-export Vidstream, Membed, VideoType, HAnime, NovelTypes
+export Vidstream, Membed, HAnime
 export genericMediaTypes
 
 proc onProgressChanged(total, progress, speed: BiggestInt) {.async,cdecl.} =

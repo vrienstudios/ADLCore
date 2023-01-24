@@ -1,7 +1,7 @@
 import nimscripter
 import genericMediaTypes
-include ./Novel/NovelTypes
-import ./Video/VideoType
+import Novel/NovelTypes
+import Video/VideoType
 import std/[httpclient, htmlparser, xmltree, strutils, strtabs, parseutils, sequtils]
 import EPUB/types
 import HLSManager
@@ -19,7 +19,7 @@ type
   SVideo* = ref object of Video
     script*: NScript
 
-converter toSNovel*(x: Novel): SNovel =
+converter toSNovel*(x: NovelTypes.Novel): SNovel =
   SNovel(isOwnedByScript: x.isOwnedByScript,
     metaData: x.metaData, lastModified: x.lastModified,
     volumes: x.volumes, chapters: x.chapters, currChapter: x.currChapter,
