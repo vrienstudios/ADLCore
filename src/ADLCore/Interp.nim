@@ -11,6 +11,7 @@ type
   InfoTuple* = tuple[name: string, cover: string, scraperType: string, version: string, projectUri: string, siteUri: string, scriptPath: string]
   NScript* = ref object
     headerInfo*: InfoTuple
+    downloaderHeaders*: HeaderTuple
     scriptID: int
     intr: Option[Interpreter]
   SNovel* = ref object of Novel
@@ -24,86 +25,46 @@ converter toSNovel*(x: Novel): SNovel =
     volumes: x.volumes, chapters: x.chapters, currChapter: x.currChapter,
     ourClient: x.ourClient, page: x.page, defaultHeaders: x.defaultHeaders,
     defaultPage: x.defaultPage, currPage: x.currPage,
-    GgetNodes: x.GgetNodes, getMetaData: x.getMetaData,
+    getNodes: x.getNodes, getMetaData: x.getMetaData,
     getChapterSequence: x.getChapterSequence, getHomeCarousel: x.getHomeCarousel,
     searchDownloader: x.searchDownloader, getCover: x.getCover)
 
 var NScripts: seq[NScript] = @[]
 var NScriptClient: seq[ptr HttpClient] = @[]
 
-method getNodes*(this: Nscript, chapter: Chapter): seq[TiNode] =
-  return this.intr.invoke(GetNodes, chapter, returnType = seq[TiNode])
-method getMetaData*(this: Nscript, page: string): MetaData =
-  return this.intr.invoke(GetMetaData, page, returnType = MetaData)
-method getChapterSequence*(this: Nscript, page: string): seq[Chapter] =
-  return this.intr.invoke(GetChapterSequence, returnType = seq[Chapter])
-# getHomeCarousel should probably return a seq[MetaData] that is later consumed by getChapterSequence to get a download
-method getHomeCarousel*(this: Nscript, page: string): seq[MetaData] =
-  return this.intr.invoke(GetHomeCarousel, page, returnType = seq[MetaData])
-method searchDownloader*(this: Nscript, str: string): seq[MetaData] =
-  return this.intr.invoke(Search, str, returnType = seq[MetaData])
-# May be a bit repetitive, but those relating directly to the script, may be deprecated in the future.
-method getNodes*(this: SNovel, chapter: Chapter): seq[TiNode] =
-  if this.script == nil:
-    return this.GgetNodes(Novel(this),  chapter)
-  return this.script.intr.invoke(GetNodes, chapter, returnType = seq[TiNode])
-
-# Video Specific
-method getStream*(this: NScript): HLSStream =
-  return this.intr.invoke(getStream, returnType = HLSStream)
-method getEpisodeSequence*(this: NScript): seq[MetaData] =
-  return this.intr.invoke(getStream, returnType = seq[MetaData])
-method getResolutions*(this: NSCript): seq[MediaStreamTuple] =
-  return this.intr.invoke(getResolution, returnType = seq[MediaStreamTuple])
-method selResolution*(this: NScript, azul: MediaStreamTuple): bool =
-  return this.intr.invoke(selResolution, azul, returnType = bool)
-
-  # Changed to 'get' next video/audio part, since it may be better to just retrieve the data rather than writing to disk directly.
-  # However, without rewriting portions of the build in functions, please don't use this.
-  # It's mainly just a proof of concept right now.
-method getNextVideoPart*(this: NScript): string =
-  return this.intr.invoke(getNextVideoPart, returnType = string)
-method getNextAudioPart*(this: NScript): string =
-  return this.intr.invoke(getNextAudioPart, returnType = string)
-
-# Video Specific SVideo functions
-method setMetaData*(this: SVideo) =
-  if this.script != nil:
-    this.metaData = getMetaData(this.script, this.defaultPage)
-    return
-  this.metaData = getMetaData(this)
-#method
-#method setEpisodeSequence*(this: SVideo) =
-#  if this.script == nil:
-#method setMetaData*(this: SNovel, page: string) =
-#  this.metaData = this.script.intr.invoke(GetMetaData, page, returnType = MetaData)
-#method setChapterSequence*(this: SNovel, page: string) =
-#  this.chapters = this.script.intr.invoke(GetChapterSequence, returnType = seq[Chapter])
-method setMetaData*(this: SNovel) =
-  if this.script != nil:
-    this.metaData = getMetaData(this.script, this.defaultPage)
-    return
-  this.metaData = getMetaData(this)
-method setChapterSequence*(this: SNovel) =
-  if this.script != nil:
-    this.chapters = getChapterSequence(this.script, "")
-    return
-  this.chapters = getChapterSequence(this)
-# getHomeCarousel should probably return a seq[MetaData] that is later consumed by getChapterSequence to get a download
-method getHomeCarousel*(this: SNovel, page: string): seq[MetaData] =
-  if this.script != nil:
-    return this.script.getHomeCarousel(page)
-  return getHomeCarousel(this)
-
-method searchDownloader*(this: SNovel, str: string): seq[MetaData] =
-  if this.script == nil:
-    return searchDownloader(this, str)
-  return this.script.intr.invoke(Search, str, returnType = seq[MetaData])
-
 method getDefHttpClient*(this: SNovel): HttpClient =
   if this.script == nil:
     return this.ourClient
   return cast[HttpClient](NScriptClient[this.script.scriptID])
+
+proc DownloadNextAudioPart*(this: SVideo, path: string): bool =
+  return this.downloadNextAudioPart(this, path)
+proc DownloadNextVideoPart*(this: SVideo, path: string): bool =
+  return this.downloadNextVideoPart(this, path)
+proc GetChapterSequence*(this: SNovel): seq[Chapter] =
+  return this.getChapterSequence(this)
+proc GetEpisodeSequence*(this: SVideo): seq[MetaData] =
+  return this.getEpisodeSequence(this)
+proc GetNovelHomeCarousel*(this: SNovel): seq[MetaData] =
+  return this.getHomeCarousel(this)
+proc GetVideoHomeCarousel*(this: SVideo): seq[MetaData] =
+  return this.getHomeCarousel(this)
+proc GetMetaData*(this: SNovel): MetaData =
+  return this.getMetaData(this)
+proc GetMetaData*(this: SVideo): MetaData =
+  return this.getMetaData(this)
+proc GetNodes*(this: SNovel, chapter: Chapter): seq[TiNode] =
+  return this.getNodes(this, chapter)
+proc GetStream*(this: SVideo): HLSStream =
+  return this.getStream(this)
+proc ListResolutions*(this: SVideo): seq[MediaStreamTuple] =
+  return this.listResolution(this)
+proc SearchDownloader*(this: SNovel, str: string): seq[MetaData] =
+  return this.searchDownloader(this, str)
+proc SearchDownloader*(this: SVideo, str: string): seq[MetaData] =
+  return this.searchDownloader(this, str)
+proc SelResolution*(this: SVideo, tul: MediaStreamTuple) =
+  this.selResolution(this, tul)
 
 proc ParseInfoTuple(file: string): InfoTuple =
   var infoTuple: InfoTuple = (name: "", cover: "", scraperType: "", version: "", projectUri: "", siteUri: "", scriptPath: "")
@@ -200,6 +161,7 @@ proc SeekNode*(node: string, desiredNode: string): string =
   return $recursiveNodeSearch(parseHtml(node), parseHtml(desiredNode))
 
 exportTo(ADLNovel,
+  HeaderTuple,
   InfoTuple, Status, TextKind, LanguageType, MetaData,
   ImageType, Image, TiNode, Chapter,
   processHttpRequest, SeekNode)
@@ -216,7 +178,7 @@ proc GenNewScript*(path: string): NScript =
   GC_unref hClient
   script.intr.invoke(SetID, len(NScriptClient))
   NScriptClient.add(cast[ptr HttpClient](hClient))
-  echo NScriptClient.len
+  script.downloaderHeaders = script.intr.invoke(Init, returnType = HeaderTuple)
   return script
 
 proc ScanForScriptsInfoTuple*(folderPath: string): seq[Interp.InfoTuple] =

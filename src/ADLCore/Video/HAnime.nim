@@ -126,19 +126,19 @@ proc Init*(uri: string): HeaderTuple =
   })
   return (
     downloadNextAudioPart: nil,
-    downloadNextVideoPart: DownloadNextVideoPart,
+    downloadNextVideoPart: HAnime.DownloadNextVideoPart,
     getChapterSequence: nil,
     getEpisodeSequence: nil,
     getNovelHomeCarousel: nil,
     getVideoHomeCarousel: nil,
     getNovelMetaData: nil,
-    getVideoMetaData: GetMetaData,
+    getVideoMetaData: HAnime.GetMetaData,
     getNodes: nil,
-    getStream: GetStreamStub,
-    listResolution: listEResolutions,
+    getStream: HAnime.GetStreamStub,
+    listResolution: HAnime.listEResolutions,
     searchNovelDownloader: nil,
-    searchVideoDownloader: Search,
-    selResolution: selEResolution,
+    searchVideoDownloader: HAnime.Search,
+    selResolution: HAnime.selEResolution,
     headers: defHeaders,
     defaultPage: uri
   )

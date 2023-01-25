@@ -5,8 +5,6 @@ import ./ADLCore/genericMediaTypes
 import ADLCore/DownloadManager
 import EPUB/EPUB3
 
-export NovelHall, MangaKakalot
-export Vidstream, Membed, HAnime
 export genericMediaTypes
 export DownloadManager
 

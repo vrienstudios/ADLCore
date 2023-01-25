@@ -274,20 +274,20 @@ proc Init*(uri: string): HeaderTuple {.nimcall.} =
         "sec-fetch-mode": "no-cors"
     })
     return (
-      downloadNextAudioPart: DownloadNextAudioPart,
-      downloadNextVideoPart: DownloadNextVideoPart,
+      downloadNextAudioPart: Membed.DownloadNextAudioPart,
+      downloadNextVideoPart: Membed.DownloadNextVideoPart,
       getChapterSequence: nil,
-      getEpisodeSequence: GetEpisodeSequence,
+      getEpisodeSequence: Membed.GetEpisodeSequence,
       getNovelHomeCarousel: nil,
       getVideoHomeCarousel: nil,
       getNovelMetaData: nil,
-      getVideoMetaData: GetMetaData,
+      getVideoMetaData: Membed.GetMetaData,
       getNodes: nil,
-      getStream: SetHLSStream,
-      listResolution: ListResolutions,
+      getStream: Membed.SetHLSStream,
+      listResolution: Membed.ListResolutions,
       searchNovelDownloader: nil,
-      searchVideoDownloader: Search,
-      selResolution: SelectResolutionFromTuple,
+      searchVideoDownloader: Membed.Search,
+      selResolution: Membed.SelectResolutionFromTuple,
       headers: defaultHeaders,
       defaultPage: uri
     )
