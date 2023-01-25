@@ -1,12 +1,11 @@
 import nimscripter
 import genericMediaTypes
-import Novel/NovelTypes
-import Video/VideoType
 import std/[httpclient, htmlparser, xmltree, strutils, strtabs, parseutils, sequtils]
 import EPUB/types
 import HLSManager
 import options, os, halonium
 import zippy
+import DownloadManager
 
 type
   InfoTuple* = tuple[name: string, cover: string, scraperType: string, version: string, projectUri: string, siteUri: string, scriptPath: string]
@@ -19,13 +18,13 @@ type
   SVideo* = ref object of Video
     script*: NScript
 
-converter toSNovel*(x: NovelTypes.Novel): SNovel =
+converter toSNovel*(x: Novel): SNovel =
   SNovel(isOwnedByScript: x.isOwnedByScript,
     metaData: x.metaData, lastModified: x.lastModified,
     volumes: x.volumes, chapters: x.chapters, currChapter: x.currChapter,
     ourClient: x.ourClient, page: x.page, defaultHeaders: x.defaultHeaders,
     defaultPage: x.defaultPage, currPage: x.currPage,
-    init: x.init, GgetNodes: x.GgetNodes, getMetaData: x.getMetaData,
+    GgetNodes: x.GgetNodes, getMetaData: x.getMetaData,
     getChapterSequence: x.getChapterSequence, getHomeCarousel: x.getHomeCarousel,
     searchDownloader: x.searchDownloader, getCover: x.getCover)
 

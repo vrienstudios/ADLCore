@@ -3,7 +3,7 @@ import ../genericMediaTypes
 import std/[os, asyncdispatch, httpclient, htmlparser, xmltree, strutils, strtabs, parseutils, sequtils, base64, json]
 import nimcrypto
 import std/json
-import VideoType
+import ../DownloadManager
 # Please follow this layout for any additional sites.
 
 # Grab the HLS stream for the current video, and sets the stream property for VidStream
@@ -291,14 +291,21 @@ proc Init*(uri: string): HeaderTuple {.nimcall.} =
         "sec-fetch-site": "same-origin",
         "sec-fetch-mode": "no-cors"
     })
-    return (headers: defaultHeaders,
-    defaultPage: uri,
-    getStream: SetHLSStream,
-    getMetaData: GetMetaData,
-    getEpisodeSequence: GetEpisodeSequence,
-    getHomeCarousel: nil,
-    searchDownloader: Search,
-    selResolution: SelectResolutionFromTuple,
-    listResolution: ListResolutions,
-    downloadNextVideoPart: DownloadNextVideoPart,
-    downloadNextAudioPart: DownloadNextAudioPart)
+    return (
+      downloadNextAudioPart: DownloadNextAudioPart,
+      downloadNextVideoPart: DownloadNextVideoPart,
+      getChapterSequence: nil,
+      getEpisodeSequence: GetEpisodeSequence,
+      getNovelHomeCarousel: nil,
+      getVideoHomeCarousel: nil,
+      getNovelMetaData: nil,
+      getVideoMetaData: GetMetaData,
+      getNodes: nil,
+      getStream: SetHLSStream,
+      listResolution: ListResolutions,
+      searchNovelDownloader: nil,
+      searchVideoDownloader: Search,
+      selResolution: SelectResolutionFromTuple,
+      headers: defaultHeaders,
+      defaultPage: uri
+    )

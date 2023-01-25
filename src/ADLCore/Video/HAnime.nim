@@ -3,7 +3,7 @@ import ../genericMediaTypes
 import std/[os, asyncdispatch, httpclient, htmlparser, xmltree, strutils, strtabs, parseutils, sequtils, base64, json]
 import nimcrypto
 import std/json
-import VideoType
+import ../DownloadManager
 
 var jContent: JsonNode
 var aesKey: string
@@ -124,15 +124,21 @@ proc Init*(uri: string): HeaderTuple =
         "sec-fetch-site": "same-origin",
         "sec-fetch-mode": "no-cors"
   })
-  return (headers: defHeaders,
-    defaultPage: uri,
-    getStream: GetStreamStub,
-    getMetaData: GetMetaData,
-    getEpisodeSequence: nil,
-    getHomeCarousel: nil,
-    searchDownloader: Search,
-    selResolution: selEResolution,
-    listResolution: listEResolutions,
+  return (
+    downloadNextAudioPart: nil,
     downloadNextVideoPart: DownloadNextVideoPart,
-    downloadNextAudioPart: nil
+    getChapterSequence: nil,
+    getEpisodeSequence: nil,
+    getNovelHomeCarousel: nil,
+    getVideoHomeCarousel: nil,
+    getNovelMetaData: nil,
+    getVideoMetaData: GetMetaData,
+    getNodes: nil,
+    getStream: GetStreamStub,
+    listResolution: listEResolutions,
+    searchNovelDownloader: nil,
+    searchVideoDownloader: Search,
+    selResolution: selEResolution,
+    headers: defHeaders,
+    defaultPage: uri
   )

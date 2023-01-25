@@ -1,17 +1,14 @@
 import ./ADLCore/Novel/NovelHall
-import ./ADLCore/Video/VidStream, ./ADLCore/Video/Membed, ./ADLCore/Video/VideoType, ./ADLCore/Video/HAnime, ./ADLCore/Novel/MangaKakalot
+import ./ADLCore/Video/VidStream, ./ADLCore/Video/Membed, ./ADLCore/Video/HAnime, ./ADLCore/Novel/MangaKakalot
 import std/[os, asyncdispatch, strutils, dynlib, httpclient, tables, sharedtables]
 import ./ADLCore/genericMediaTypes
-import ADLCore/Novel/NovelTypes
+import ADLCore/DownloadManager
 import EPUB/EPUB3
 
 export NovelHall, MangaKakalot
 export Vidstream, Membed, HAnime
 export genericMediaTypes
-
-proc onProgressChanged(total, progress, speed: BiggestInt) {.async,cdecl.} =
-    echo("Downloaded ", progress, " of ", total)
-    echo("Rate: ", speed, "b/s")
+export DownloadManager
 
 proc GenerateNewNovelInstance*(site: string, uri: string): Novel {.exportc,dynlib.} =
   var novelObj: Novel

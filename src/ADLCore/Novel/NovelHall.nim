@@ -1,4 +1,4 @@
-import ./NovelTypes
+import ../DownloadManager
 import ../genericMediaTypes
 import EPUB/types
 import std/[httpclient, htmlparser, xmltree, strutils, strtabs, parseutils, sequtils]
@@ -167,4 +167,21 @@ proc Init*(uri: string): HeaderTuple =
         "Host": "www.novelhall.com",
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8"
     })
-    return (headers: defaultHeaders, defaultPage: uri, getNodes: GetNodes, getMetaData: GetMetaData, getChapterSequence: GetChapterSequence, getHomeCarousel: GetHomePage, searchDownloader: Search)
+    return (
+      downloadNextAudioPart: nil,
+      downloadNextVideoPart: nil,
+      getChapterSequence: GetChapterSequence,
+      getEpisodeSequence: nil,
+      getNovelHomeCarousel: GetHomePage,
+      getVideoHomeCarousel: nil,
+      getNovelMetaData: GetMetaData,
+      getVideoMetaData: nil,
+      getNodes: GetNodes,
+      getStream: nil,
+      listResolution: nil,
+      searchNovelDownloader: Search,
+      searchVideoDownloader: nil,
+      selResolution: nil,
+      headers: defaultHeaders,
+      defaultPage: uri
+    )
