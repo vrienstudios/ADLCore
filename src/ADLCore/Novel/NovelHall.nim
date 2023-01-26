@@ -176,7 +176,7 @@ proc Init*(uri: string): HeaderTuple =
       getVideoHomeCarousel: nil,
       getNovelMetaData: NovelHall.GetMetaData,
       getVideoMetaData: nil,
-      getNodes: nil,
+      getNodes: NovelHall.GetNodes,
       getStream: nil,
       listResolution: nil,
       searchNovelDownloader: NovelHall.Search,

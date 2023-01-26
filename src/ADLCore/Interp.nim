@@ -42,7 +42,8 @@ proc DownloadNextAudioPart*(this: SVideo, path: string): bool =
 proc DownloadNextVideoPart*(this: SVideo, path: string): bool =
   return this.downloadNextVideoPart(this, path)
 proc GetChapterSequence*(this: SNovel): seq[Chapter] =
-  return this.getChapterSequence(this)
+  this.chapters = this.getChapterSequence(this)
+  return this.chapters
 proc GetEpisodeSequence*(this: SVideo): seq[MetaData] =
   return this.getEpisodeSequence(this)
 proc GetNovelHomeCarousel*(this: SNovel): seq[MetaData] =
@@ -50,13 +51,16 @@ proc GetNovelHomeCarousel*(this: SNovel): seq[MetaData] =
 proc GetVideoHomeCarousel*(this: SVideo): seq[MetaData] =
   return this.getHomeCarousel(this)
 proc GetMetaData*(this: SNovel): MetaData =
-  return this.getMetaData(this)
+  this.metaData = this.getMetaData(this)
+  return this.metaData
 proc GetMetaData*(this: SVideo): MetaData =
-  return this.getMetaData(this)
+  this.metaData = this.getMetaData(this)
+  return this.metaData
 proc GetNodes*(this: SNovel, chapter: Chapter): seq[TiNode] =
   return this.getNodes(this, chapter)
 proc GetStream*(this: SVideo): HLSStream =
-  return this.getStream(this)
+  this.hlsStream = this.getStream(this)
+  return this.hlsStream
 proc ListResolutions*(this: SVideo): seq[MediaStreamTuple] =
   return this.listResolution(this)
 proc SearchDownloader*(this: SNovel, str: string): seq[MetaData] =
