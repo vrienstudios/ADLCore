@@ -5,7 +5,7 @@ import std/[httpclient, htmlparser, xmltree, strutils, strtabs, parseutils, sequ
 
 # Please follow this layout for any additional sites.
 
-proc GetNodes(this: Novel, chapter: Chapter): seq[TiNode] {.nimcall.} =
+proc GetNodes(this: Novel, chapter: Chapter): seq[TiNode] {.nimcall, gcsafe.} =
     let ret: string = this.ourClient.getContent(chapter.uri)
     this.currPage = chapter.uri
     this.page = parseHtml(ret)
@@ -24,7 +24,7 @@ proc GetNodes(this: Novel, chapter: Chapter): seq[TiNode] {.nimcall.} =
         break
     return f
 
-proc GetMetaData*(this: Novel): MetaData {.nimcall.} =
+proc GetMetaData*(this: Novel): MetaData {.nimcall, gcsafe.} =
   var cMetaData: MetaData = MetaData()
   if this.currPage != this.defaultPage:
     this.page = parseHtml(this.ourClient.getContent(this.defaultPage))
@@ -80,7 +80,7 @@ proc GetMetaData*(this: Novel): MetaData {.nimcall.} =
   return cMetaData
 
 
-proc GetChapterSequence*(this: Novel): seq[Chapter] {.nimcall.} =
+proc GetChapterSequence*(this: Novel): seq[Chapter] {.nimcall, gcsafe.} =
     if this.currPage != this.defaultPage:
       this.page = parseHtml(this.ourClient.getContent(this.defaultPage))
       this.currPage = this.defaultPage
@@ -100,7 +100,7 @@ proc GetChapterSequence*(this: Novel): seq[Chapter] {.nimcall.} =
                                 chapters.add(Chapter(name: sanitizeString(child.innerText), uri: "https://www.novelhall.com" & child.attr("href")))
                         return chapters
 
-proc ParseCarouselNodeToNovel(node: XmlNode): MetaData {.nimcall.} =
+proc ParseCarouselNodeToNovel(node: XmlNode): MetaData {.nimcall, gcsafe.} =
   var meta: MetaData = MetaData()
   for nodes in node.items:
     if nodes.kind == xnElement and nodes.attr("class") == "book-img":
@@ -118,7 +118,7 @@ proc ParseCarouselNodeToNovel(node: XmlNode): MetaData {.nimcall.} =
       continue
   return meta
 
-proc GetHomePage*(this: Novel): seq[MetaData] {.nimcall.} =
+proc GetHomePage*(this: Novel): seq[MetaData] {.nimcall, gcsafe.} =
   var novels: seq[MetaData] = @[]
   if this.currPage != "https://www.novelhall.com":
     let content = this.ourClient.getContent("https://www.novelhall.com")
@@ -135,7 +135,7 @@ proc GetHomePage*(this: Novel): seq[MetaData] {.nimcall.} =
   return novels
 
 # Returns basic novel objects without MetaData.
-proc Search*(this: Novel, term: string): seq[MetaData] {.nimcall.} =
+proc Search*(this: Novel, term: string): seq[MetaData] {.nimcall, gcsafe.} =
   var metaDataSeq: seq[MetaData] = @[]
   let content = this.ourClient.getContent("https://www.novelhall.com/index.php?s=so&module=book&keyword=" & term.replace(' ', '&'))
   this.page = parseHtml(content)

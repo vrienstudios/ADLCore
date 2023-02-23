@@ -19,26 +19,26 @@ type
     audioStream*: seq[string]
     mediaStreams*: seq[MediaStreamTuple]
     # Function for getting the base stream for Episode; this would, supposedly, be used for embedded video players.
-    getStream*: proc(this: Video): HLSStream {.nimcall.}
+    getStream*: proc(this: Video): HLSStream {.nimcall, gcsafe.}
     # Function for gathering MetaData object for Video.
-    getMetaData*: proc(this: Video): MetaData {.nimcall.}
+    getMetaData*: proc(this: Video): MetaData {.nimcall, gcsafe.}
     # Function for gathering list of related episodes.
-    getEpisodeSequence*: proc(this: Video): seq[MetaData] {.nimcall.}
+    getEpisodeSequence*: proc(this: Video): seq[MetaData] {.nimcall, gcsafe.}
     # Function for getting the home page/carousel..
-    getHomeCarousel*: proc(this: Video): seq[MetaData] {.nimcall.}
+    getHomeCarousel*: proc(this: Video): seq[MetaData] {.nimcall, gcsafe.}
     # Function for getting search information..
-    searchDownloader*: proc(this: Video, str: string): seq[MetaData] {.gcsafe.}
+    searchDownloader*: proc(this: Video, str: string): seq[MetaData] {.nimcall, gcsafe.}
     # Function for getting the cover from the downloader (Unused right now).
-    getCover*: proc(this: Video): string {.nimcall.}
+    getCover*: proc(this: Video): string {.nimcall, gcsafe.}
     # Function for getting the next part or byte sequence in the stream in the form of a string.
-    getNext*: proc (this: Video): string {.nimcall.}
+    getNext*: proc (this: Video): string {.nimcall, gcsafe.}
     # Select desired resolution
-    selResolution*: proc(this: Video, tul: MediaStreamTuple)
+    selResolution*: proc(this: Video, tul: MediaStreamTuple) {.nimcall, gcsafe.}
     # List all resolutions caught (includes video)
-    listResolution*: proc(this: Video): seq[MediaStreamTuple]
+    listResolution*: proc(this: Video): seq[MediaStreamTuple] {.nimcall, gcsafe.}
     # Download video/audio parts
-    downloadNextVideoPart*: proc(this: Video, path: string): bool
-    downloadNextAudioPart*: proc(this: Video, path: string): bool
+    downloadNextVideoPart*: proc(this: Video, path: string): bool {.nimcall, gcsafe.}
+    downloadNextAudioPart*: proc(this: Video, path: string): bool {.nimcall, gcsafe.}
   Chapter* = ref object of RootObj
       name*: string
       number*: int
@@ -62,63 +62,63 @@ type
       currPage*: string
 
       # Function for initiating the lower object.
-      init*: proc(this: Novel, uri: string) {.nimcall.}
+      init*: proc(this: Novel, uri: string) {.nimcall, gcsafe.}
       # Function for returning all TiNodes associated with chapters.
       getNodes*: proc(this: Novel, chapter: Chapter): seq[TiNode] {.nimcall, gcsafe.}
       # Function for setting MetaData
-      getMetaData*: proc(this: Novel): MetaData {.nimcall.}
+      getMetaData*: proc(this: Novel): MetaData {.nimcall, gcsafe.}
       # Function for setting chapters
-      getChapterSequence*: proc(this: Novel): seq[Chapter] {.nimcall.}
+      getChapterSequence*: proc(this: Novel): seq[Chapter] {.nimcall, gcsafe.}
       # Function to get the home carousel of the downloader
-      getHomeCarousel*: proc(this: Novel): seq[MetaData] {.nimcall.}
+      getHomeCarousel*: proc(this: Novel): seq[MetaData] {.nimcall, gcsafe.}
       # Function to get search information from
-      searchDownloader*: proc(this: Novel, str: string): seq[MetaData] {.nimcall.}
+      searchDownloader*: proc(this: Novel, str: string): seq[MetaData] {.nimcall, gcsafe.}
       # Function to get the data from the cover using ourClient
-      getCover*: proc (this: Novel): string {.nimcall.}
+      getCover*: proc (this: Novel): string {.nimcall, gcsafe.}
   HeaderTuple* = tuple[
-    downloadNextAudioPart: proc(this: Video, path: string) : bool {.nimcall.},                   #0
-    downloadNextVideoPart: proc(this: Video, path: string) : bool {.nimcall.},                   #1
-    getChapterSequence: proc(this: Novel): seq[Chapter] {.nimcall.},                             #2
-    getEpisodeSequence: proc(this: Video): seq[MetaData] {.nimcall.},                            #3
-    getNovelHomeCarousel: proc(this: Novel): seq[MetaData] {.nimcall.},                          #4
-    getVideoHomeCarousel: proc(this: Video): seq[MetaData] {.nimcall.},                          #5
-    getNovelMetaData: proc(this: Novel): MetaData {.nimcall.},                                   #6
-    getVideoMetaData: proc(this: Video): MetaData {.nimcall.},                                   #7
+    downloadNextAudioPart: proc(this: Video, path: string) : bool {.nimcall, gcsafe.},                   #0
+    downloadNextVideoPart: proc(this: Video, path: string) : bool {.nimcall, gcsafe.},                   #1
+    getChapterSequence: proc(this: Novel): seq[Chapter] {.nimcall, gcsafe.},                             #2
+    getEpisodeSequence: proc(this: Video): seq[MetaData] {.nimcall, gcsafe.},                            #3
+    getNovelHomeCarousel: proc(this: Novel): seq[MetaData] {.nimcall, gcsafe.},                          #4
+    getVideoHomeCarousel: proc(this: Video): seq[MetaData] {.nimcall, gcsafe.},                          #5
+    getNovelMetaData: proc(this: Novel): MetaData {.nimcall, gcsafe.},                                   #6
+    getVideoMetaData: proc(this: Video): MetaData {.nimcall, gcsafe.},                                   #7
     getNodes: proc(this: Novel, chapter: Chapter): seq[TiNode] {.nimcall, gcsafe.},              #8
-    getStream: proc(this: Video): HLSStream {.nimcall.},                                         #9
-    listResolution: proc(this: Video): seq[MediaStreamTuple] {.nimcall.},                        #10
-    searchNovelDownloader: proc(this: Novel, str: string): seq[MetaData] {.nimcall.},            #11
+    getStream: proc(this: Video): HLSStream {.nimcall, gcsafe.},                                         #9
+    listResolution: proc(this: Video): seq[MediaStreamTuple] {.nimcall, gcsafe.},                        #10
+    searchNovelDownloader: proc(this: Novel, str: string): seq[MetaData] {.nimcall, gcsafe.},            #11
     searchVideoDownloader: proc(this: Video, str: string): seq[MetaData] {.nimcall, gcsafe.},    #12
-    selResolution: proc(this: Video, tul: MediaStreamTuple) {.nimcall.},                         #13
+    selResolution: proc(this: Video, tul: MediaStreamTuple) {.nimcall, gcsafe.},                         #13
     headers: HttpHeaders, defaultPage: string]                                                   #14,15
 
-proc DownloadNextAudioPart*(this: Video, path: string): bool =
+proc DownloadNextAudioPart*(this: Video, path: string): bool {.gcsafe.} =
   return this.downloadNextAudioPart(this, path)
-proc DownloadNextVideoPart*(this: Video, path: string): bool =
+proc DownloadNextVideoPart*(this: Video, path: string): bool {.gcsafe.} =
   return this.downloadNextVideoPart(this, path)
-proc GetChapterSequence*(this: Novel): seq[Chapter] =
+proc GetChapterSequence*(this: Novel): seq[Chapter] {.gcsafe.} =
   return this.getChapterSequence(this)
-proc GetEpisodeSequence*(this: Video): seq[MetaData] =
+proc GetEpisodeSequence*(this: Video): seq[MetaData] {.gcsafe.} =
   return this.getEpisodeSequence(this)
-proc GetNovelHomeCarousel*(this: Novel): seq[MetaData] =
+proc GetNovelHomeCarousel*(this: Novel): seq[MetaData] {.gcsafe.} =
   return this.getHomeCarousel(this)
-proc GetVideoHomeCarousel*(this: Video): seq[MetaData] =
+proc GetVideoHomeCarousel*(this: Video): seq[MetaData] {.gcsafe.} =
   return this.getHomeCarousel(this)
-proc GetMetaData*(this: Novel): MetaData =
+proc GetMetaData*(this: Novel): MetaData {.gcsafe.} =
   return this.getMetaData(this)
-proc GetMetaData*(this: Video): MetaData =
+proc GetMetaData*(this: Video): MetaData {.gcsafe.} =
   return this.getMetaData(this)
-proc GetNodes*(this: Novel, chapter: Chapter): seq[TiNode] =
+proc GetNodes*(this: Novel, chapter: Chapter): seq[TiNode] {.gcsafe.} =
   return this.getNodes(this, chapter)
-proc GetStream*(this: Video): HLSStream =
+proc GetStream*(this: Video): HLSStream {.gcsafe.} =
   return this.getStream(this)
-proc ListResolutions*(this: Video): seq[MediaStreamTuple] =
+proc ListResolutions*(this: Video): seq[MediaStreamTuple] {.gcsafe.} =
   return this.listResolution(this)
-proc SearchDownloader*(this: Novel, str: string): seq[MetaData] =
+proc SearchDownloader*(this: Novel, str: string): seq[MetaData] {.gcsafe.} =
   return this.searchDownloader(this, str)
-proc SearchDownloader*(this: Video, str: string): seq[MetaData] =
+proc SearchDownloader*(this: Video, str: string): seq[MetaData] {.gcsafe.} =
   return this.searchDownloader(this, str)
-proc SelResolution*(this: Video, tul: MediaStreamTuple) =
+proc SelResolution*(this: Video, tul: MediaStreamTuple) {.gcsafe.} =
   this.selResolution(this, tul)
 
 method Init*(this: Video, headers: HeaderTuple) {.base.} =
