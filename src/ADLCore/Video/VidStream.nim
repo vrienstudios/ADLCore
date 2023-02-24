@@ -3,11 +3,11 @@ import ../genericMediaTypes
 import std/[os, asyncdispatch, httpclient, htmlparser, xmltree, strutils, strtabs, parseutils, sequtils, base64, json]
 import nimcrypto
 import std/json
-import VideoType
+import ../DownloadManager
 # Please follow this layout for any additional sites.
 
 # Grab the HLS stream for the current video, and sets the stream property for VidStream
-proc SetHLSStream*(this: Video): HLSStream {.nimcall.} =
+proc SetHLSStream*(this: Video): HLSStream {.nimcall, gcsafe.} =
     let streamingUri: string = "https:" & this.page.findAll("iframe")[0].attr("src")
     this.currPage = streamingUri
     this.page = parseHtml(this.ourClient.getContent(streamingUri))
@@ -105,7 +105,7 @@ proc SetHLSStream*(this: Video): HLSStream {.nimcall.} =
     this.hlsStream = ParseManifest(parts, uri[0 .. ^(uri.split('/')[^1].len + 1)])
     return this.hlsStream
 
-proc GetMetaData(this: Video): MetaData {.nimcall.} =
+proc GetMetaData(this: Video): MetaData {.nimcall, gcsafe.} =
   this.metaData = MetaData()
   if this.currPage != this.defaultPage:
     this.ourClient.headers = this.defaultHeaders
@@ -128,7 +128,7 @@ proc GetMetaData(this: Video): MetaData {.nimcall.} =
         break
   return this.metaData
 
-proc GetEpisodeMetaDataObject(this: XmlNode): MetaData {.nimcall.} =
+proc GetEpisodeMetaDataObject(this: XmlNode): MetaData {.nimcall, gcsafe.} =
   var metaData: MetaData = MetaData()
   let node = this.child("a")
   metaData.uri = "https://gogoplay1.com" & node.attr("href")
@@ -147,7 +147,7 @@ proc GetEpisodeMetaDataObject(this: XmlNode): MetaData {.nimcall.} =
         discard
   return metaData
 
-proc GetEpisodeSequence(this: Video): seq[MetaData] {.nimcall.} =
+proc GetEpisodeSequence(this: Video): seq[MetaData] {.nimcall, gcsafe.} =
   var mDataSeq: seq[MetaData] = @[]
   if this.currPage != this.defaultPage:
     this.page = parseHtml(this.ourClient.getContent(this.defaultPage))
@@ -159,7 +159,7 @@ proc GetEpisodeSequence(this: Video): seq[MetaData] {.nimcall.} =
       break
   return mDataSeq
 
-proc ListResolutions(this: Video): seq[MediaStreamTuple] {.nimcall.} =
+proc ListResolutions(this: Video): seq[MediaStreamTuple] {.nimcall, gcsafe.} =
   var hlsBase = this.hlsStream
   var medStream: seq[MediaStreamTuple] = @[]
   var index: int = 0
@@ -192,7 +192,7 @@ proc ListResolutions(this: Video): seq[MediaStreamTuple] {.nimcall.} =
     inc index
   return medStream
 
-proc DownloadNextVideoPart(this: Video, path: string): bool {.nimcall.} =
+proc DownloadNextVideoPart(this: Video, path: string): bool {.nimcall, gcsafe.} =
   this.ourClient.headers = newHttpHeaders({
       "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:101.0) Gecko/20100101 Firefox/101.0",
       "Referer": "https://gogoplay1.com/streaming.php",
@@ -222,7 +222,7 @@ proc DownloadNextVideoPart(this: Video, path: string): bool {.nimcall.} =
   close(file)
   return true
 
-proc DownloadNextAudioPart(this: Video, path: string): bool {.nimcall.} =
+proc DownloadNextAudioPart(this: Video, path: string): bool {.nimcall, gcsafe.} =
   this.ourClient.headers = newHttpHeaders({
       "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:101.0) Gecko/20100101 Firefox/101.0",
       "Referer": "https://gogoplay1.com/streaming.php",
@@ -243,7 +243,7 @@ proc DownloadNextAudioPart(this: Video, path: string): bool {.nimcall.} =
   close(file)
   return true
 
-proc Search*(this: Video, str: string): seq[MetaData] {.nimcall.} =
+proc Search*(this: Video, str: string): seq[MetaData] {.nimcall, gcsafe.} =
   this.ourClient.headers = newHttpHeaders({
         "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:101.0) Gecko/20100101 Firefox/101.0",
         "Referer": "https://gogoplay1.com/",
@@ -263,7 +263,7 @@ proc Search*(this: Video, str: string): seq[MetaData] {.nimcall.} =
     results.add(data)
   return results
 
-proc SelectResolutionFromTuple(this: Video, tul: MediaStreamTuple) {.nimcall.} =
+proc SelectResolutionFromTuple(this: Video, tul: MediaStreamTuple) {.nimcall, gcsafe.} =
   var vManifest = ParseManifest(splitLines(this.ourClient.getContent(tul.uri)), this.hlsStream.baseUri)
   var vSeq: seq[string] = @[]
   for part in vManifest.parts:
@@ -278,7 +278,7 @@ proc SelectResolutionFromTuple(this: Video, tul: MediaStreamTuple) {.nimcall.} =
         aSeq.add(part.values[0].value)
       this.audioStream = aSeq
       break
-proc getHomeCarousel(this: Video): seq[MetaData] {.nimcall.} =
+proc getHomeCarousel(this: Video): seq[MetaData] {.nimcall, gcsafe.} =
   return @[]
 # Initialize the client and add default headers.
 proc Init*(uri: string): HeaderTuple {.nimcall.} =
@@ -291,14 +291,21 @@ proc Init*(uri: string): HeaderTuple {.nimcall.} =
         "sec-fetch-site": "same-origin",
         "sec-fetch-mode": "no-cors"
     })
-    return (headers: defaultHeaders,
-    defaultPage: uri,
-    getStream: SetHLSStream,
-    getMetaData: GetMetaData,
-    getEpisodeSequence: GetEpisodeSequence,
-    getHomeCarousel: nil,
-    searchDownloader: Search,
-    selResolution: SelectResolutionFromTuple,
-    listResolution: ListResolutions,
-    downloadNextVideoPart: DownloadNextVideoPart,
-    downloadNextAudioPart: DownloadNextAudioPart)
+    return (
+      downloadNextAudioPart: VidStream.DownloadNextAudioPart,
+      downloadNextVideoPart: VidStream.DownloadNextVideoPart,
+      getChapterSequence: nil,
+      getEpisodeSequence: VidStream.GetEpisodeSequence,
+      getNovelHomeCarousel: nil,
+      getVideoHomeCarousel: nil,
+      getNovelMetaData: nil,
+      getVideoMetaData: VidStream.GetMetaData,
+      getNodes: nil,
+      getStream: VidStream.SetHLSStream,
+      listResolution: VidStream.ListResolutions,
+      searchNovelDownloader: nil,
+      searchVideoDownloader: VidStream.Search,
+      selResolution: VidStream.SelectResolutionFromTuple,
+      headers: defaultHeaders,
+      defaultPage: uri
+    )

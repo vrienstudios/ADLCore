@@ -1,11 +1,11 @@
-import ../Interp
+import ../DownloadManager
 import ../genericMediaTypes
 import EPUB/[types, genericHelpers]
 import std/[httpclient, htmlparser, xmltree, strutils, strtabs, parseutils, sequtils, enumutils, json]
 
 # Please follow this layout for any additional sites.
 
-proc GetNodes*(this: Novel, chapter: Chapter): seq[TiNode] =
+proc GetNodes*(this: Novel, chapter: Chapter): seq[TiNode] {.nimcall, gcsafe.} =
   var nodes: seq[TiNode]
   var images: seq[Image]
   var host: string = chapter.uri.split("/")[2]
@@ -38,7 +38,7 @@ proc GetNodes*(this: Novel, chapter: Chapter): seq[TiNode] =
 
 type MangaKakalotStatus = enum Active = "Ongoing", Hiatus = "Hiatus", Dropped = "Dropped", Completed = "Completed"
 
-proc GetMetaData*(this: Novel): MetaData =
+proc GetMetaData*(this: Novel): MetaData {.nimcall, gcsafe.} =
   var cMetaData: MetaData = MetaData()
   if this.currPage != this.defaultPage:
     this.ourClient.headers = this.defaultHeaders
@@ -99,7 +99,7 @@ proc GetMetaData*(this: Novel): MetaData =
   return cMetaData
 
 
-proc GetChapterSequence*(this: Novel): seq[Chapter] {.nimcall.} =
+proc GetChapterSequence*(this: Novel): seq[Chapter] {.nimcall, gcsafe.} =
     var chapters: seq[Chapter]
     if this.currPage != this.defaultPage:
       this.ourClient.headers = this.defaultHeaders
@@ -126,12 +126,12 @@ proc GetChapterSequence*(this: Novel): seq[Chapter] {.nimcall.} =
       dec i
     return chapters
 
-proc GetHomePage*(this: Novel): seq[MetaData] =
+proc GetHomePage*(this: Novel): seq[MetaData] {.nimcall, gcsafe.} =
   var novels: seq[MetaData] = @[]
   return novels
 
 # Returns basic novel objects without MetaData.
-proc Search*(this: Novel, term: string): seq[MetaData] =
+proc Search*(this: Novel, term: string): seq[MetaData] {.nimcall, gcsafe.} =
   var metaDataSeq: seq[MetaData] = @[]
   var data = newMultipartData()
   data["searchword"] = term
@@ -157,4 +157,24 @@ proc Init*(uri: string): HeaderTuple =
         "Host": host,
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,application/json,*/*;q=0.8"
     })
-    return (headers: defaultHeaders, defaultPage: uri, getNodes: GetNodes, getMetaData: GetMetaData, getChapterSequence: GetChapterSequence, getHomeCarousel: GetHomePage, searchDownloader: Search)
+  #return (headers: defaultHeaders, defaultPage: uri, getNodes: GetNodes, getMetaData: GetMetaData,
+  #getChapterSequence: GetChapterSequence, getHomeCarousel: GetHomePage, searchDownloader: Search)
+
+    return (
+      downloadNextAudioPart: nil,
+      downloadNextVideoPart: nil,
+      getChapterSequence: MangaKakalot.GetChapterSequence,
+      getEpisodeSequence: nil,
+      getNovelHomeCarousel: MangaKakalot.GetHomePage,
+      getVideoHomeCarousel: nil,
+      getNovelMetaData: MangaKakalot.GetMetaData,
+      getVideoMetaData: nil,
+      getNodes: MangaKakalot.GetNodes,
+      getStream: nil,
+      listResolution: nil,
+      searchNovelDownloader: MangaKakalot.Search,
+      searchVideoDownloader: nil,
+      selResolution: nil,
+      headers: defaultHeaders,
+      defaultPage: uri
+    )

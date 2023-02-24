@@ -3,12 +3,12 @@ import ../genericMediaTypes
 import std/[os, asyncdispatch, httpclient, htmlparser, xmltree, strutils, strtabs, parseutils, sequtils, base64, json]
 import nimcrypto
 import std/json
-import VideoType
+import ../DownloadManager
 
-var jContent: JsonNode
-var aesKey: string
+var jContent {.threadvar.}: JsonNode
+var aesKey {.threadvar.}: string
 
-proc Search*(this: Video, str: string): seq[MetaData] =
+proc Search*(this: Video, str: string): seq[MetaData] {.nimcall, gcsafe.} =
   # https://search.htv-services.com/
   let mSearchData = %*{
     "blacklist": [],
@@ -41,7 +41,7 @@ proc Search*(this: Video, str: string): seq[MetaData] =
     met.genre = tags
     data.add(met)
   return data
-proc GetMetaData*(this: Video): MetaData =
+proc GetMetaData*(this: Video): MetaData {.nimcall, gcsafe.} =
   this.metaData = MetaData()
   if this.currPage != this.defaultPage:
     this.ourClient.headers = this.defaultHeaders
@@ -64,10 +64,10 @@ proc GetMetaData*(this: Video): MetaData =
   this.metaData.uri = "www.hanime.tv/" & mdat["slug"].getStr()
   return this.metaData
 
-proc GetStreamStub*(this: Video): HLSStream =
+proc GetStreamStub*(this: Video): HLSStream {.nimcall, gcsafe.} =
   return this.hlsStream
 
-proc listEResolutions*(this: Video): seq[MediaStreamTuple] =
+proc listEResolutions*(this: Video): seq[MediaStreamTuple] {.nimcall, gcsafe.} =
   # We will continue to refrain from exploiting their API to provide 1080P content.
   # Again, buy HAnime premiun, if you wish to watch or download 1080P content.
   # Or wait until we implement torrents; not gonna waste he bandwidth of HAnime.
@@ -81,7 +81,7 @@ proc listEResolutions*(this: Video): seq[MediaStreamTuple] =
       isAudio: false, bandWidth: "unknown"))
   return medStreams
 
-proc selEResolution*(this: Video, tul: MediaStreamTuple) {.nimcall.} =
+proc selEResolution*(this: Video, tul: MediaStreamTuple) {.nimcall, gcsafe.} =
   var vManifest = ParseManifest(splitLines(this.ourClient.getContent(tul.uri)))
   var vSeq: seq[string] = @[]
   aesKey = this.ourClient.getContent("https://hanime.tv/sign.bin")
@@ -92,7 +92,7 @@ proc selEResolution*(this: Video, tul: MediaStreamTuple) {.nimcall.} =
   # No Audio Streams
 
 # https://www.youtube.com/watch?v=XCrjEPjJp18
-proc DownloadNextVideoPart*(this: Video, path: string): bool =
+proc DownloadNextVideoPart*(this: Video, path: string): bool {.nimcall, gcsafe.} =
   var dContext: CBC[aes128]
   if this.videoCurrIdx >= this.videoStream.len:
     return false
@@ -124,15 +124,21 @@ proc Init*(uri: string): HeaderTuple =
         "sec-fetch-site": "same-origin",
         "sec-fetch-mode": "no-cors"
   })
-  return (headers: defHeaders,
-    defaultPage: uri,
-    getStream: GetStreamStub,
-    getMetaData: GetMetaData,
+  return (
+    downloadNextAudioPart: nil,
+    downloadNextVideoPart: HAnime.DownloadNextVideoPart,
+    getChapterSequence: nil,
     getEpisodeSequence: nil,
-    getHomeCarousel: nil,
-    searchDownloader: Search,
-    selResolution: selEResolution,
-    listResolution: listEResolutions,
-    downloadNextVideoPart: DownloadNextVideoPart,
-    downloadNextAudioPart: nil
+    getNovelHomeCarousel: nil,
+    getVideoHomeCarousel: nil,
+    getNovelMetaData: nil,
+    getVideoMetaData: HAnime.GetMetaData,
+    getNodes: nil,
+    getStream: HAnime.GetStreamStub,
+    listResolution: HAnime.listEResolutions,
+    searchNovelDownloader: nil,
+    searchVideoDownloader: HAnime.Search,
+    selResolution: HAnime.selEResolution,
+    headers: defHeaders,
+    defaultPage: uri
   )
