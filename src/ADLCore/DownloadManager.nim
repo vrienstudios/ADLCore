@@ -135,7 +135,7 @@ method Init*(this: Video, headers: HeaderTuple) {.base.} =
     this.selResolution = headers[13]
 
     this.ourClient = newHttpClient()
-    this.ourClient.headers = headers[14]
+    this.defaultHeaders = headers[14]
     this.defaultPage = headers[15]
 method Init*(this: Novel, headers: HeaderTuple) {.base.} =
     #this.downloadNextAudioPart = headers[0]
@@ -151,5 +151,5 @@ method Init*(this: Novel, headers: HeaderTuple) {.base.} =
     #this.selResolution = headers[10]
 
     this.ourClient = newHttpClient()
-    this.ourClient.headers = headers[14]
+    this.defaultHeaders = headers[14]
     this.defaultPage = headers[15]
