@@ -82,6 +82,7 @@ proc GetMetaData*(this: Novel): MetaData {.nimcall, gcsafe.} =
 
 proc GetChapterSequence*(this: Novel): seq[Chapter] {.nimcall, gcsafe.} =
     if this.currPage != this.defaultPage:
+      this.ourClient.headers = this.defaultHeaders
       this.page = parseHtml(this.ourClient.getContent(this.defaultPage))
       this.currPage = this.defaultPage
     var sequence: seq[XmlNode]
@@ -163,7 +164,6 @@ proc Search*(this: Novel, term: string): seq[MetaData] {.nimcall, gcsafe.} =
 proc Init*(uri: string): HeaderTuple =
     let defaultHeaders = newHttpHeaders({
         "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:101.0) Gecko/20100101 Firefox/101.0",
-        "Referer": "https://www.novelhall.com",
         "Host": "www.novelhall.com",
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8"
     })

@@ -75,8 +75,11 @@ proc listEResolutions*(this: Video): seq[MediaStreamTuple] {.nimcall, gcsafe.} =
   assert jContent != nil
   let servers = jContent["videos_manifest"]["servers"]
   # skip first to ignore 1080p.
-  for resolution in servers.getElems()[0]["streams"].getElems()[1..^1]:
-    medStreams.add((id: $resolution["id"].getInt(), resolution: $resolution["width"].getInt() & "x" & resolution["height"].getStr(),
+  for resolution in servers.getElems()[0]["streams"].getElems():
+    medStreams.add((id: $resolution["id"].getInt(),
+    resolution: resolution["width"].getStr() & "x" &
+      (if resolution["height"].getInt() >= 1080: resolution["height"].getStr() &
+        " (PRIVATE)" else: resolution["height"].getStr()),
     uri: resolution["url"].getStr(), language: "english",
       isAudio: false, bandWidth: "unknown"))
   return medStreams
