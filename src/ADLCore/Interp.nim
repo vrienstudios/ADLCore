@@ -11,7 +11,6 @@ type
   InfoTuple* = tuple[name: string, cover: string, scraperType: string, version: string, projectUri: string, siteUri: string, scriptPath: string]
   NScript* = ref object
     headerInfo*: InfoTuple
-    downloaderHeaders*: HeaderTuple
     scriptID: int
     intr: Option[Interpreter]
   SNovel* = ref object of Novel
@@ -28,6 +27,10 @@ converter toSNovel*(x: Novel): SNovel =
     getNodes: x.getNodes, getMetaData: x.getMetaData,
     getChapterSequence: x.getChapterSequence, getHomeCarousel: x.getHomeCarousel,
     searchDownloader: x.searchDownloader, getCover: x.getCover)
+proc `defaultPage=`*(x: var SNovel, page: string) =
+  x.defaultPage = page
+  if x.script != nil:
+    x.script.intr.invoke(SetDefaultPage, page)
 
 var NScripts: seq[NScript] = @[]
 var NScriptClient: seq[ptr HttpClient] = @[]
@@ -36,28 +39,48 @@ method getDefHttpClient*(this: SNovel): HttpClient =
   if this.script == nil:
     return this.ourClient
   return cast[HttpClient](NScriptClient[this.script.scriptID])
-
 proc DownloadNextAudioPart*(this: SVideo, path: string): bool =
-  return this.downloadNextAudioPart(this, path)
+  if this.script == nil:
+    return this.downloadNextAudioPart(this, path)
+  return this.script.intr.invoke(DownloadNextAudioPart, path, returnType = bool)
 proc DownloadNextVideoPart*(this: SVideo, path: string): bool =
-  return this.downloadNextVideoPart(this, path)
+  if this.script == nil:
+    return this.downloadNextVideoPart(this, path)
+  return this.script.intr.invoke(DownloadNextVideoPart, path, returnType = bool)
 proc GetChapterSequence*(this: SNovel): seq[Chapter] =
-  this.chapters = this.getChapterSequence(this)
-  return this.chapters
+  var chapters: seq[Chapter] = @[]
+  if this.script == nil:
+    chapters = this.getChapterSequence(this)
+  else:
+    chapters = this.script.intr.invoke(GetChapterSequence, returnType = seq[Chapter])
+  this.chapters = chapters
+  return chapters
 proc GetEpisodeSequence*(this: SVideo): seq[MetaData] =
-  return this.getEpisodeSequence(this)
+  if this.script == nil:
+    return this.getEpisodeSequence(this)
+  return this.script.intr.invoke(GetEpisodeSequence, returnType = seq[MetaData])
 proc GetNovelHomeCarousel*(this: SNovel): seq[MetaData] =
-  return this.getHomeCarousel(this)
+  if this.script == nil:
+    return this.getHomeCarousel(this)
+  return this.script.intr.invoke(GetNovelHomeCarousel, returnType = seq[MetaData])
 proc GetVideoHomeCarousel*(this: SVideo): seq[MetaData] =
   return this.getHomeCarousel(this)
 proc GetMetaData*(this: SNovel): MetaData =
-  this.metaData = this.getMetaData(this)
+  if this.script == nil:
+    this.metaData = this.getMetaData(this)
+  else:  this.metaData = this.script.intr.invoke(GetMetaData, returnType = MetaData)
   return this.metaData
 proc GetMetaData*(this: SVideo): MetaData =
-  this.metaData = this.getMetaData(this)
+  if this.script == nil:
+    this.metaData = this.getMetaData(this)
+  else:  this.metaData = this.script.intr.invoke(GetMetaData, returnType = MetaData)
   return this.metaData
 proc GetNodes*(this: SNovel, chapter: Chapter): seq[TiNode] =
-  return this.getNodes(this, chapter)
+  if this.script == nil:
+    return this.getNodes(this, chapter)
+  return this.script.intr.invoke(GetNodes, chapter, returnType = seq[TiNode])
+
+## TODO/VERIFY
 proc GetStream*(this: SVideo): HLSStream =
   this.hlsStream = this.getStream(this)
   return this.hlsStream
@@ -106,6 +129,7 @@ proc ReadScriptInfoTuple*(path: string): InfoTuple =
   return infoTuple
 
 proc processHttpRequest(uri: string, scriptID: int, headers: seq[tuple[key: string, value: string]], mimicBrowser: bool = false): string =
+  echo "U:" & uri
   if mimicBrowser:
     # TODO: When windows, verify browsers installed
     # TODO: When linux, verify browsers installed
@@ -165,7 +189,6 @@ proc SeekNode*(node: string, desiredNode: string): string =
   return $recursiveNodeSearch(parseHtml(node), parseHtml(desiredNode))
 
 exportTo(ADLNovel,
-  HeaderTuple,
   InfoTuple, Status, TextKind, LanguageType, MetaData,
   ImageType, Image, TiNode, Chapter,
   processHttpRequest, SeekNode)
@@ -182,7 +205,6 @@ proc GenNewScript*(path: string): NScript =
   GC_unref hClient
   script.intr.invoke(SetID, len(NScriptClient))
   NScriptClient.add(cast[ptr HttpClient](hClient))
-  script.downloaderHeaders = script.intr.invoke(Init, returnType = HeaderTuple)
   return script
 
 proc ScanForScriptsInfoTuple*(folderPath: string): seq[Interp.InfoTuple] =
