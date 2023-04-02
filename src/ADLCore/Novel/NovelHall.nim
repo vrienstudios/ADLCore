@@ -163,9 +163,12 @@ proc Search*(this: Novel, term: string): seq[MetaData] {.nimcall, gcsafe.} =
 # Initialize the client and add default headers.
 proc Init*(uri: string): HeaderTuple =
     let defaultHeaders = newHttpHeaders({
-        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:101.0) Gecko/20100101 Firefox/101.0",
+        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/109.0",
         "Host": "www.novelhall.com",
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8"
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+        "Referer": "https://www.novelhall.com/",
+        "Alt-Used": "www.novelhall.com",
+        "Connection": "keep-alive",
     })
     return (
       downloadNextAudioPart: nil,
