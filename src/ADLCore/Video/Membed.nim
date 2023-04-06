@@ -119,7 +119,7 @@ proc GetEpisodeSequence(this: Video): seq[MetaData] {.nimcall, gcsafe.} =
     if node.kind != xnElement: continue
     if node.tag != "li": continue
     var mdata: MetaData = MetaData()
-    mdata.uri = node.child("a").attr("href")
+    mdata.uri = "https://membed1.com" & node.child("a").attr("href")
     mdata.coverUri = recursiveNodeSearch(this.page, parseHtml("<div class=\"img\">")).child("div").child("img").attr("href")
     mdata.name = sanitizeString(recursiveNodeSearch(node, parseHtml("<div class=\"name\">")).innerText)
     mDataSeq.add mdata
