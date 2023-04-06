@@ -152,42 +152,6 @@ proc processHttpRequest(uri: string, scriptID: int, headers: seq[tuple[key: stri
     else:
       return request.body
 
-proc attrEquivalenceCheck*(a, b: XmlNode): bool =
-  if a.attrs == nil and b.attrs == nil:
-    return true
-  if a.attrs == nil or b.attrs == nil:
-    return false
-  if a.attrs.len != b.attrs.len:
-    return false
-  for k in a.attrs.keys:
-    if b.attrs.hasKey(k):
-      if b.attrs[k] == a.attrs[k]:
-        continue
-    return false
-  return true
-proc checkEquivalence*(a, b: XmlNode): bool =
-  if a.kind == b.kind:
-    if a.kind == xnElement:
-      # Text comparison can happen somewhere else
-      if attrEquivalenceCheck(a, b) and a.tag == b.tag:
-        return true
-  return false
-proc recursiveNodeSearch*(x: XmlNode, n: XmlNode): XmlNode =
-  if $x == $n or checkEquivalence(x, n):
-    return x
-  for item in x.items:
-    if $item == $n or checkEquivalence(item, n):
-      return item
-    if item.kind != xnElement:
-      continue
-    let ni = recursiveNodeSearch(item, n)
-    if ni != nil:
-      return ni
-  return nil
-# Using strings as a workaround of the nnkSym error.
-proc SeekNode*(node: string, desiredNode: string): string =
-  return $recursiveNodeSearch(parseHtml(node), parseHtml(desiredNode))
-
 exportTo(ADLNovel,
   InfoTuple, Status, TextKind, LanguageType, MetaData,
   ImageType, Image, TiNode, Chapter,
