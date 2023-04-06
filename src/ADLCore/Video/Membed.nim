@@ -123,7 +123,12 @@ proc GetEpisodeSequence(this: Video): seq[MetaData] {.nimcall, gcsafe.} =
     mdata.coverUri = recursiveNodeSearch(this.page, parseHtml("<div class=\"img\">")).child("div").child("img").attr("href")
     mdata.name = sanitizeString(recursiveNodeSearch(node, parseHtml("<div class=\"name\">")).innerText)
     mDataSeq.add mdata
-  return mDataSeq
+  var m: seq[MetaData]
+  var idx: int = mDataSeq.len
+  while idx > 0:
+    dec idx
+    m.add mDataSeq[idx]
+  return m
 
 proc ListResolutions(this: Video): seq[MediaStreamTuple] {.nimcall.} =
   var hlsBase = this.hlsStream
