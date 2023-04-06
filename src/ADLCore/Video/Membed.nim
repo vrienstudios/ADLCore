@@ -109,35 +109,20 @@ proc GetMetaData(this: Video): MetaData {.nimcall, gcsafe.} =
         break
   return this.metaData
 
-proc GetEpisodeMetaDataObject(this: XmlNode): MetaData {.nimcall, gcsafe.} =
-  var metaData: MetaData = MetaData()
-  let node = this.child("a")
-  metaData.uri = "https://gogoplay1.com" & node.attr("href")
-  # OM MY GOD, WHY
-  for divider in node.items:
-    if divider.kind != xnElement:
-      continue
-    case divider.attr("class"):
-      of "img":
-        metaData.coverUri = sanitizeString(divider.child("div").child("img").attr("src"))
-        break
-      of "name":
-        metaData.name = sanitizeString(divider.innerText)
-        break
-      else:
-        discard
-  return metaData
-
 proc GetEpisodeSequence(this: Video): seq[MetaData] {.nimcall, gcsafe.} =
   var mDataSeq: seq[MetaData] = @[]
   if this.currPage != this.defaultPage:
     this.page = parseHtml(this.ourClient.getContent(this.defaultPage))
     this.currPage = this.defaultPage
-  for nodes in this.page.findAll("div"):
-    if nodes.attr("class") == "video-info-left":
-      for li in nodes.findAll("li"):
-        mDataSeq.add(GetEpisodeMetaDataObject(li))
-      break
+  var videoList: XmlNode = recursiveNodeSearch(this.page, parseHtml("<ul class=\"listing items lists\">"))
+  for node in videoList.items:
+    if node.kind != xnElement: continue
+    if node.tag != "li": continue
+    var mdata: MetaData = MetaData()
+    mdata.uri = node.child("a").attr("href")
+    mdata.coverUri = recursiveNodeSearch(this.page, parseHtml("<div class=\"img\">")).child("div").child("img").attr("href")
+    mdata.name = sanitizeString(recursiveNodeSearch(node, parseHtml("<div class=\"name\">")).innerText)
+    mDataSeq.add mdata
   return mDataSeq
 
 proc ListResolutions(this: Video): seq[MediaStreamTuple] {.nimcall.} =
