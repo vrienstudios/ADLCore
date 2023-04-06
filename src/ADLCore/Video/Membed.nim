@@ -1,8 +1,7 @@
 import HLSManager
 import ../genericMediaTypes
-import std/[os, asyncdispatch, httpclient, htmlparser, xmltree, strutils, strtabs, parseutils, sequtils, base64, json]
+import std/[os, httpclient, htmlparser, xmltree, strutils, base64, json]
 import nimcrypto
-import std/json
 import ../DownloadManager
 # Please follow this layout for any additional sites.
 

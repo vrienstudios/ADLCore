@@ -1,8 +1,7 @@
 import HLSManager
 import ../genericMediaTypes
-import std/[os, asyncdispatch, httpclient, htmlparser, xmltree, strutils, strtabs, parseutils, sequtils, base64, json]
+import std/[os, httpclient, htmlparser, xmltree, strutils, base64, json]
 import nimcrypto
-import std/json
 import ../DownloadManager
 # Please follow this layout for any additional sites.
 
@@ -71,9 +70,7 @@ proc SetHLSStream*(this: Video): HLSStream {.nimcall, gcsafe.} =
     ectx.encrypt(plainText, encText)
     ectx.clear()
     # Probably shouldn't have made this of a set size, but it should be within this length.
-    var nString: string = newString(22)
     var pText: seq[byte] = @(encText.toOpenArrayByte(0, encText.len - aes256.sizeBlock - 1))
-    var str: string
     var uriArgs: string
     for strings in bodyUri[1..(len(bodyUri) - 2)]:
       uriArgs.add("&" & strings)
@@ -86,7 +83,6 @@ proc SetHLSStream*(this: Video): HLSStream {.nimcall, gcsafe.} =
         "Accept": "*/*",
         "Accept-Encoding": "identity",
     })
-    var page: XmlNode
     let data = this.ourClient.getContent(mainReqUri)
     var json = parseJSon(data)
     var jData = json["data"].getStr().decode()

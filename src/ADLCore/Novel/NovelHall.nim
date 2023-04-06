@@ -1,7 +1,7 @@
 import ../DownloadManager
 import ../genericMediaTypes
 import EPUB/types
-import std/[httpclient, htmlparser, xmltree, strutils, strtabs, parseutils, sequtils]
+import std/[httpclient, htmlparser, xmltree, strutils, parseutils, sequtils]
 
 # Please follow this layout for any additional sites.
 
@@ -107,7 +107,6 @@ proc ParseCarouselNodeToNovel(node: XmlNode): MetaData {.nimcall, gcsafe.} =
     if nodes.kind == xnElement and nodes.attr("class") == "book-img":
       let b = nodes.child("a")
       meta.uri = "https://novelhall.com" & b.attr("href")
-      let img = b.child("img")
       meta.coverUri = b.attr("src")
       meta.name = b.attr("alt")
     elif nodes.kind == xnElement and nodes.attr("class") == "book-info":
