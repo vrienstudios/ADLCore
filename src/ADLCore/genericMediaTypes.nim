@@ -1,5 +1,5 @@
 import std/strutils
-
+import std/[xmlparser, htmlparser, xmltree, sequtils, parseutils, strutils, strtabs]
 type
   InfoTuple* = tuple[name: string, scraperType: string, version: string,
   projectUri: string, siteUri: string]
@@ -33,10 +33,50 @@ proc sanitizeString*(str: string): string =
   var oS = str
   removePrefix(oS, '\n')
   removePrefix(oS, ' ')
-  removeSuffix(oS, '\n')
-  removeSuffix(oS, ' ')
   var newStr: string = ""
+  var idx: int = 0
   for chr in oS:
+    inc idx
+    if (chr == ' ' or chr == '\n') and
+      (oS[if idx >= oS.len - 1: oS.len - 1 else: idx] == ' ' or
+      oS[if idx >= oS.len - 1: oS.len - 1 else: idx] == '\n'):
+      continue
     if chr >= '0' and chr <= '9' or chr >= 'A' and chr <= 'Z' or chr >= 'a' and chr <= 'z' or chr == ' ' or chr == '\n': # Preserve newLn
       newStr.add(chr)
   return newStr
+
+proc attrEquivalenceCheck*(a, b: XmlNode): bool =
+  if a.attrs == nil and b.attrs == nil:
+    return true
+  if a.attrs == nil or b.attrs == nil:
+    return false
+  if a.attrs.len != b.attrs.len:
+    return false
+  for k in a.attrs.keys:
+    if b.attrs.hasKey(k):
+      if b.attrs[k] == a.attrs[k]:
+        continue
+    return false
+  return true
+proc checkEquivalence*(a, b: XmlNode): bool =
+  if a.kind == b.kind:
+    if a.kind == xnElement:
+      # Text comparison can happen somewhere else
+      if attrEquivalenceCheck(a, b) and a.tag == b.tag:
+        return true
+  return false
+proc recursiveNodeSearch*(x: XmlNode, n: XmlNode): XmlNode =
+  if $x == $n or checkEquivalence(x, n):
+    return x
+  for item in x.items:
+    if $item == $n or checkEquivalence(item, n):
+      return item
+    if item.kind != xnElement:
+      continue
+    let ni = recursiveNodeSearch(item, n)
+    if ni != nil:
+      return ni
+  return nil
+# Using strings as a workaround of the nnkSym error.
+proc SeekNode*(node: string, desiredNode: string): string =
+  return $recursiveNodeSearch(parseHtml(node), parseHtml(desiredNode))

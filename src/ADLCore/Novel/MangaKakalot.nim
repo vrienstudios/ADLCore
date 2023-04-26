@@ -1,7 +1,7 @@
 import ../DownloadManager
 import ../genericMediaTypes
 import EPUB/[types, genericHelpers]
-import std/[httpclient, htmlparser, xmltree, strutils, strtabs, parseutils, sequtils, enumutils, json]
+import std/[httpclient, htmlparser, xmltree, strutils, enumutils, json]
 
 # Please follow this layout for any additional sites.
 
@@ -153,7 +153,6 @@ proc Init*(uri: string): HeaderTuple =
     else: host = "mangakakalot.com"
     let defaultHeaders = newHttpHeaders({
         "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:101.0) Gecko/20100101 Firefox/101.0",
-        "Referer": "https://mangakakalot.com/",
         "Host": host,
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,application/json,*/*;q=0.8"
     })

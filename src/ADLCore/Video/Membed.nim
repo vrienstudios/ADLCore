@@ -1,8 +1,7 @@
 import HLSManager
 import ../genericMediaTypes
-import std/[os, asyncdispatch, httpclient, htmlparser, xmltree, strutils, strtabs, parseutils, sequtils, base64, json]
+import std/[os, httpclient, htmlparser, xmltree, strutils, base64, json]
 import nimcrypto
-import std/json
 import ../DownloadManager
 # Please follow this layout for any additional sites.
 
@@ -110,36 +109,26 @@ proc GetMetaData(this: Video): MetaData {.nimcall, gcsafe.} =
         break
   return this.metaData
 
-proc GetEpisodeMetaDataObject(this: XmlNode): MetaData {.nimcall, gcsafe.} =
-  var metaData: MetaData = MetaData()
-  let node = this.child("a")
-  metaData.uri = "https://gogoplay1.com" & node.attr("href")
-  # OM MY GOD, WHY
-  for divider in node.items:
-    if divider.kind != xnElement:
-      continue
-    case divider.attr("class"):
-      of "img":
-        metaData.coverUri = sanitizeString(divider.child("div").child("img").attr("src"))
-        break
-      of "name":
-        metaData.name = sanitizeString(divider.innerText)
-        break
-      else:
-        discard
-  return metaData
-
 proc GetEpisodeSequence(this: Video): seq[MetaData] {.nimcall, gcsafe.} =
   var mDataSeq: seq[MetaData] = @[]
   if this.currPage != this.defaultPage:
     this.page = parseHtml(this.ourClient.getContent(this.defaultPage))
     this.currPage = this.defaultPage
-  for nodes in this.page.findAll("div"):
-    if nodes.attr("class") == "video-info-left":
-      for li in nodes.findAll("li"):
-        mDataSeq.add(GetEpisodeMetaDataObject(li))
-      break
-  return mDataSeq
+  var videoList: XmlNode = recursiveNodeSearch(this.page, parseHtml("<ul class=\"listing items lists\">"))
+  for node in videoList.items:
+    if node.kind != xnElement: continue
+    if node.tag != "li": continue
+    var mdata: MetaData = MetaData()
+    mdata.uri = "https://membed1.com" & node.child("a").attr("href")
+    mdata.coverUri = recursiveNodeSearch(node, parseHtml("<div class=\"img\">")).child("div").child("img").attr("href")
+    mdata.name = sanitizeString(recursiveNodeSearch(node, parseHtml("<div class=\"name\">")).innerText)
+    mDataSeq.add mdata
+  var m: seq[MetaData]
+  var idx: int = mDataSeq.len
+  while idx > 0:
+    dec idx
+    m.add mDataSeq[idx]
+  return m
 
 proc ListResolutions(this: Video): seq[MediaStreamTuple] {.nimcall.} =
   var hlsBase = this.hlsStream
@@ -234,14 +223,15 @@ proc Search*(this: Video, str: string): seq[MetaData] {.nimcall, gcsafe.} =
         "Accept-Encoding": "identity",
   })
   let content = this.ourClient.getContent("https://membed.net/search.html?keyword=" & str)
-  let json = parseJson(content)
   var results: seq[MetaData] = @[]
-  this.page = parseHtml(json["content"].getStr())
+  this.page = parseHtml(content)
   this.currPage = "https://membed.net"
-  for a in this.page.findAll("a"):
+  for a in recursiveNodeSearch(this.page, parseHtml("<ul class=\"listing items\">")).items:
+    if a.kind != xnElement: continue
+    if a.tag != "li": continue
     var data = MetaData()
-    data.name = a.innerText
-    data.uri = "https://membed.net" & a.attr("href")
+    data.name = sanitizeString(recursiveNodeSearch(a, parseHtml("<div class=\"name\">")).innerText)
+    data.uri = "https://membed.net" & a.child("a").attr("href")
     results.add(data)
   return results
 

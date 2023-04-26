@@ -8,6 +8,7 @@ srcDir        = "src"
 
 # Tasks
 task test, "Test ADLCore Functionality":
+  exec "nimble install -Y" # Install latest version
   withDir "tests":
     exec "nim c -d:ssl --threads:on -r tester"
 
