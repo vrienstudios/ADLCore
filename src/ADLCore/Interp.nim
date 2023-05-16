@@ -33,12 +33,12 @@ proc `defaultPage=`*(x: var SNovel, page: string) =
     x.script.intr.invoke(SetDefaultPage, page)
 
 var NScripts: seq[NScript] = @[]
-var NScriptClient: seq[ptr HttpClient] = @[]
+var NScriptClient: HttpClient
 
 method getDefHttpClient*(this: SNovel): HttpClient =
   if this.script == nil:
     return this.ourClient
-  return cast[HttpClient](NScriptClient[this.script.scriptID])
+  return NScriptClient
 proc DownloadNextAudioPart*(this: SVideo, path: string): bool =
   if this.script == nil:
     return this.downloadNextAudioPart(this, path)
@@ -129,7 +129,6 @@ proc ReadScriptInfoTuple*(path: string): InfoTuple =
   return infoTuple
 
 proc processHttpRequest(uri: string, scriptID: int, headers: seq[tuple[key: string, value: string]], mimicBrowser: bool = false): string =
-  echo "U:" & uri
   if mimicBrowser:
     # TODO: When windows, verify browsers installed
     # TODO: When linux, verify browsers installed
@@ -140,12 +139,10 @@ proc processHttpRequest(uri: string, scriptID: int, headers: seq[tuple[key: stri
     sesh.navigate uri
     return sesh.pageSource()
   var reqHeaders: HttpHeaders = newHttpHeaders()
-  var g: HttpClient = cast[HttpClient](NScriptClient[scriptID])
   for i in headers:
     reqHeaders.add(i.key, i.value)
-  g.headers = reqHeaders
-  echo g.headers
-  let request = g.request(url = uri, httpMethod = HttpGet, headers = reqHeaders)
+  NScriptClient.headers = reqHeaders
+  let request = NScriptClient.request(url = uri, httpMethod = HttpGet, headers = reqHeaders)
   case request.status:
     of "404":
       return "404"
@@ -155,20 +152,19 @@ proc processHttpRequest(uri: string, scriptID: int, headers: seq[tuple[key: stri
 exportTo(ADLNovel,
   InfoTuple, Status, TextKind, LanguageType, MetaData,
   ImageType, Image, TiNode, Chapter,
-  processHttpRequest, SeekNode)
+  processHttpRequest, SeekNode, sanitizeString)
 
 const novelInclude = implNimScriptModule(ADLNovel)
 
 proc GenNewScript*(path: string): NScript =
+  if NScriptClient == nil:
+    NScriptClient = newHttpClient()
   var script: NScript = NScript()
   let scr = NimScriptPath(path)
   script.intr = loadScript(scr, novelInclude)
   script.headerInfo = ReadScriptInfoTuple(path)
   NScripts.add script
-  var hClient = newHttpClient()
-  GC_unref hClient
-  script.intr.invoke(SetID, len(NScriptClient))
-  NScriptClient.add(cast[ptr HttpClient](hClient))
+  script.intr.invoke(SetID, len(NScripts))
   return script
 
 proc ScanForScriptsInfoTuple*(folderPath: string): seq[Interp.InfoTuple] =
