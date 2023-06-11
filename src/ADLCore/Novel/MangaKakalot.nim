@@ -1,12 +1,11 @@
 import ../DownloadManager
 import ../genericMediaTypes
-import EPUB/[types, genericHelpers]
+import EPUB
 import std/[httpclient, htmlparser, xmltree, strutils, enumutils, json]
 
 # Please follow this layout for any additional sites.
 
-proc GetNodes*(this: Novel, chapter: Chapter): seq[TiNode] {.nimcall, gcsafe.} =
-  var nodes: seq[TiNode]
+proc GetNodes*(this: Novel, chapter: Chapter): seq[Image] {.nimcall, gcsafe.} =
   var images: seq[Image]
   var host: string = chapter.uri.split("/")[2]
   this.ourClient.headers = newHttpHeaders({
@@ -25,7 +24,7 @@ proc GetNodes*(this: Novel, chapter: Chapter): seq[TiNode] {.nimcall, gcsafe.} =
         "Host": img.attr("src").split("/")[2],
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,application/json,*/*;q=0.8"
       })
-      var epubImg: Image = Image(bytes: this.ourClient.getContent(img.attr("src")), name: SanitizePageProp(chapter.name.split(" ").join("_") & "_" & img.attr("src").split("/")[^1]))
+      var epubImg: Image = Image(isPathData: true, path: this.ourClient.getContent(img.attr("src")), fileName: SanitizePageProp(chapter.name.split(" ").join("_") & "_" & img.attr("src").split("/")[^1]))
       images.add(epubImg)
   
   this.ourClient.headers = newHttpHeaders({
@@ -33,8 +32,7 @@ proc GetNodes*(this: Novel, chapter: Chapter): seq[TiNode] {.nimcall, gcsafe.} =
     "Host": this.metaData.coverUri.split("/")[2],
     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,application/json,*/*;q=0.8"
   })
-  nodes.add(TiNode(images: images))
-  return nodes
+  return images
 
 type MangaKakalotStatus = enum Active = "Ongoing", Hiatus = "Hiatus", Dropped = "Dropped", Completed = "Completed"
 

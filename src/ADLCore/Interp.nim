@@ -1,7 +1,7 @@
 import nimscripter
 import genericMediaTypes
 import std/[httpclient, htmlparser, xmltree, strutils, strtabs, parseutils, sequtils]
-import EPUB/types
+import EPUB
 import HLSManager
 import options, os, halonium
 import zippy

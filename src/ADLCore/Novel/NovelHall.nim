@@ -1,6 +1,6 @@
 import ../DownloadManager
 import ../genericMediaTypes
-import EPUB/types
+import EPUB
 import std/[httpclient, htmlparser, xmltree, strutils, parseutils, sequtils]
 
 # Please follow this layout for any additional sites.

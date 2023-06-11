@@ -1,5 +1,5 @@
 import genericMediaTypes
-import EPUB/types
+import EPUB
 import HLSManager
 import std/[httpclient, xmltree]
 
