@@ -5,8 +5,8 @@ import std/[httpclient, htmlparser, xmltree, strutils, enumutils, json]
 
 # Please follow this layout for any additional sites.
 
-proc GetNodes*(this: Novel, chapter: Chapter): seq[Image] {.nimcall, gcsafe.} =
-  var images: seq[Image]
+proc GetNodes*(this: Novel, chapter: Chapter): seq[TiNode] {.nimcall, gcsafe.} =
+  var images: seq[TiNode]
   var host: string = chapter.uri.split("/")[2]
   this.ourClient.headers = newHttpHeaders({
     "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:101.0) Gecko/20100101 Firefox/101.0",
@@ -24,7 +24,8 @@ proc GetNodes*(this: Novel, chapter: Chapter): seq[Image] {.nimcall, gcsafe.} =
         "Host": img.attr("src").split("/")[2],
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,application/json,*/*;q=0.8"
       })
-      var epubImg: Image = Image(isPathData: true, path: this.ourClient.getContent(img.attr("src")), fileName: SanitizePageProp(chapter.name.split(" ").join("_") & "_" & img.attr("src").split("/")[^1]))
+      let img: Image = Image(isPathData: true, path: this.ourClient.getContent(img.attr("src")), fileName: chapter.name.split(" ").join("_") & "_" & img.attr("src").split("/")[^1])
+      var epubImg: TiNode = TiNode(kind: NodeKind.ximage, image: img)
       images.add(epubImg)
   
   this.ourClient.headers = newHttpHeaders({

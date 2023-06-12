@@ -18,6 +18,8 @@ type
   SVideo* = ref object of Video
     script*: NScript
 
+#converter psuedoToTiNode(x: PsuedoNode): TiNode =
+#  result = TiNode(kind: x.kind, attrs: XmlAttributes(x.attrs, text: x.text, image: x.image)
 converter toSNovel*(x: Novel): SNovel =
   SNovel(isOwnedByScript: x.isOwnedByScript,
     metaData: x.metaData, lastModified: x.lastModified,
@@ -150,8 +152,8 @@ proc processHttpRequest(uri: string, scriptID: int, headers: seq[tuple[key: stri
       return request.body
 
 exportTo(ADLNovel,
-  InfoTuple, Status, TextKind, LanguageType, MetaData,
-  ImageType, Image, TiNode, Chapter,
+  InfoTuple, Status, NodeKind, LanguageType, MetaData,
+  ImageKind, Image, TiNode, Chapter,
   processHttpRequest, SeekNode, sanitizeString)
 
 const novelInclude = implNimScriptModule(ADLNovel)
