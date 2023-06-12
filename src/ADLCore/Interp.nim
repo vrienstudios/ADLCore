@@ -151,6 +151,7 @@ proc processHttpRequest(uri: string, scriptID: int, headers: seq[tuple[key: stri
     else:
       return request.body
 
+
 exportTo(ADLNovel,
   InfoTuple, Status, NodeKind, LanguageType, MetaData,
   ImageKind, Image, TiNode, Chapter,
@@ -163,7 +164,7 @@ proc GenNewScript*(path: string): NScript =
     NScriptClient = newHttpClient()
   var script: NScript = NScript()
   let scr = NimScriptPath(path)
-  script.intr = loadScript(scr, novelInclude)
+  script.intr = loadScript(scr, novelInclude, ["xmltree", "htmlparser"])
   script.headerInfo = ReadScriptInfoTuple(path)
   NScripts.add script
   script.intr.invoke(SetID, len(NScripts))
