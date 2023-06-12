@@ -1,9 +1,9 @@
 # Package
 
-version       = "0.1.6"
+version       = "0.2.0"
 author        = "ShujianDou"
 description   = "Novel, Video, and Anime scraper"
-license       = "Proprietary"
+license       = "GPLv3"
 srcDir        = "src"
 
 # Tasks
@@ -16,7 +16,7 @@ task test, "Test ADLCore Functionality":
 
 requires "nim >= 1.6.6"
 requires "halonium == 0.2.6"
-requires "EPUB"
+requires "EPUB == 0.3.0"
 requires "HLSManager"
 requires "nimcrypto"
 requires "nimscripter"
