@@ -85,21 +85,13 @@ proc GetChapterSequence*(this: Novel): seq[Chapter] {.nimcall, gcsafe.} =
       this.ourClient.headers = this.defaultHeaders
       this.page = parseHtml(this.ourClient.getContent(this.defaultPage))
       this.currPage = this.defaultPage
-    var sequence: seq[XmlNode]
-    this.page.findall("div", sequence)
+    let ourNode = parseHtml(SeekNode($this.page, "<div class=\"book-catalog inner mt20\">"))
     var chapters: seq[Chapter]
-    for n in sequence:
-        if n.attr("class") == "book-catalog inner mt20":
-            for items in n.items:
-                if items.kind == xnElement:
-                    if items.tag == "ul":
-                        #items.child("ul").items
-                        for textEl in items.findall("ul")[1].items:
-                            if textEl.kind == xnElement and textEl.tag == "li":
-                                #FINALLY
-                                let child: XmlNode = textEl.child("a")
-                                chapters.add(Chapter(name: sanitizeString(child.innerText), uri: "https://www.novelhall.com" & child.attr("href")))
-                        return chapters
+    for li in ourNode.findAll("ul")[2]:
+      if li.kind == xnElement and li.tag == "li":
+        let child: XmlNode = li.child("a")
+        chapters.add(Chapter(name: sanitizeString(child.innerText), uri: "https://www.novelhall.com" & child.attr("href")))
+    return chapters
 
 proc ParseCarouselNodeToNovel(node: XmlNode): MetaData {.nimcall, gcsafe.} =
   var meta: MetaData = MetaData()
