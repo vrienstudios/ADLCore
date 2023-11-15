@@ -29,6 +29,15 @@ converter toSNovel*(x: Novel): SNovel =
     getNodes: x.getNodes, getMetaData: x.getMetaData,
     getChapterSequence: x.getChapterSequence, getHomeCarousel: x.getHomeCarousel,
     searchDownloader: x.searchDownloader, getCover: x.getCover)
+converter toSVideo*(x: Video): SVideo =
+  SVideo(ourClient: x.ourClient, metaData: x.metaData, page: x.page, defaultPage: x.defaultPage,
+    defaultHeaders: x.defaultHeaders, currPage: x.currPage, hlsStream: x.hlsStream,
+    videoCurrIdx: x.videoCurrIdx, videoStream: x.videoStream, audioCurrIdx: x.audioCurrIdx,
+    audioStream: x.audioStream, mediaStreams: x.mediaStreams, getStream: x.getStream,
+    getMetaData: x.getMetaData, getEpisodeSequence: x.getEpisodeSequence, getHomeCarousel: x.getHomeCarousel,
+    searchDownloader: x.searchDownloader, getCover: x.getCover, getNext: x.getNext,
+    selResolution: x.selResolution, listResolution: x.listResolution, downloadNextVideoPart: x.downloadNextVideoPart,
+    downloadNextAudioPart: x.downloadNextAudioPart)
 proc `defaultPage=`*(x: var SNovel, page: string) =
   x.defaultPage = page
   if x.script != nil:

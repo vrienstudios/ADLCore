@@ -66,6 +66,8 @@ proc checkEquivalence*(a, b: XmlNode): bool =
         return true
   return false
 proc recursiveNodeSearch*(x: XmlNode, n: XmlNode): XmlNode =
+  if x == nil:
+    return nil
   if $x == $n or checkEquivalence(x, n):
     return x
   for item in x.items:
