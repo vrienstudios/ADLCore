@@ -53,6 +53,26 @@ method getDefHttpClient*(this: SNovel): HttpClient =
   if this.script == nil:
     return this.ourClient
   return NScriptClient
+proc processHttpRequest(uri: string, scriptID: int, headers: seq[tuple[key: string, value: string]], mimicBrowser: bool = false): string =
+  if mimicBrowser:
+    # TODO: When windows, verify browsers installed
+    # TODO: When linux, verify browsers installed
+    # TODO: Move this from where it currently sits, and have it be somewhat like http clients, assigned based on script.
+    #   So we do not have to create a new browser session every request.
+    # Will currenctly default to chromium, since I believe that network stack is less likely to be blocked due to fingerprinting.
+    var sesh = createSession(Chromium, browserOptions=chromeOptions(args=["--headless", "--user-agent=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/105.0.0.0 Safari/537.36"]), hideDriverConsoleWindow=true)
+    sesh.navigate uri
+    return sesh.pageSource()
+  var reqHeaders: HttpHeaders = newHttpHeaders()
+  for i in headers:
+    reqHeaders.add(i.key, i.value)
+  NScriptClient.headers = reqHeaders
+  let request = NScriptClient.request(url = uri, httpMethod = HttpGet, headers = reqHeaders)
+  case request.status:
+    of "404":
+      return "404"
+    else:
+      return request.body
 proc DownloadNextAudioPart*(this: SVideo, path: string): bool =
   if this.script == nil:
     return this.downloadNextAudioPart(this, path)
@@ -60,7 +80,30 @@ proc DownloadNextAudioPart*(this: SVideo, path: string): bool =
 proc DownloadNextVideoPart*(this: SVideo, path: string): bool =
   if this.script == nil:
     return this.downloadNextVideoPart(this, path)
-  return this.script.intr.invoke(DownloadNextVideoPart, path, returnType = bool)
+  if this.videoCurrIdx >= len(this.videoStream):
+    return false
+  var 
+    counter: int = 0
+    videoData: string = ""
+    file: File
+  while counter < 10:
+    try:
+      videoData = this.script.intr.invoke(GetNextVideoPart, this.videoCurrIdx, this.videoStream, returnType = string)
+      break    
+    except:
+      inc counter
+      echo "Failed Download, Retrying $1/$2" % [$counter, "10"]
+  if counter > 10:
+    return false
+  if fileExists(path):
+    file = open(path, fmAppend)
+  else:
+    file = open(path, fmWrite)
+  write(file, videoData)
+  inc this.videoCurrIdx
+  close(file)
+  return true
+  
 proc GetChapterSequence*(this: SNovel): seq[Chapter] =
   var chapters: seq[Chapter] = @[]
   if this.script == nil:
@@ -113,21 +156,9 @@ proc SearchDownloader*(this: SVideo, str: string): seq[MetaData] =
 proc SelResolution*(this: SVideo, tul: MediaStreamTuple) =
   # Select Resolution Here
   if this.script != nil:
-    var 
-      vManifest = ParseManifest(splitLines(this.ourClient.getContent(tul.uri)), this.hlsStream.baseUri)
-      vSeq: seq[string] = @[]
-    for part in vManifest.parts:
-      if part.header == "URI":
-        vSeq.add(part.values[0].value)
-    this.videoStream = vSeq
-    for stream in this.mediaStreams:
-      if stream.id == tul.id:
-        var aManifest = ParseManifest(splitLines(this.ourClient.getContent(stream.uri)), this.hlsStream.baseUri)
-        var aSeq: seq[string] = @[]
-        for part in aManifest.parts:
-          aSeq.add(part.values[0].value)
-        this.audioStream = aSeq
-        break
+    var streams = this.script.intr.invoke(SetResolution, (tul, this.hlsStream.baseUri), returnType = tuple[video: seq[string], audio: seq[string]])
+    this.videoStream = streams.video
+    this.audioStream = streams.audio
     return
   this.selResolution(this, tul) # Un-needed, but in case some downloader requires more.
 
@@ -165,29 +196,8 @@ proc ReadScriptInfoTuple*(path: string): InfoTuple =
   var infoTuple = ParseInfoTuple(readFile(path))
   infoTuple.scriptPath = path
   return infoTuple
-
-proc processHttpRequest(uri: string, scriptID: int, headers: seq[tuple[key: string, value: string]], mimicBrowser: bool = false): string =
-  if mimicBrowser:
-    # TODO: When windows, verify browsers installed
-    # TODO: When linux, verify browsers installed
-    # TODO: Move this from where it currently sits, and have it be somewhat like http clients, assigned based on script.
-    #   So we do not have to create a new browser session every request.
-    # Will currenctly default to chromium, since I believe that network stack is less likely to be blocked due to fingerprinting.
-    var sesh = createSession(Chromium, browserOptions=chromeOptions(args=["--headless", "--user-agent=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/105.0.0.0 Safari/537.36"]), hideDriverConsoleWindow=true)
-    sesh.navigate uri
-    return sesh.pageSource()
-  var reqHeaders: HttpHeaders = newHttpHeaders()
-  for i in headers:
-    reqHeaders.add(i.key, i.value)
-  NScriptClient.headers = reqHeaders
-  let request = NScriptClient.request(url = uri, httpMethod = HttpGet, headers = reqHeaders)
-  case request.status:
-    of "404":
-      return "404"
-    else:
-      return request.body
-proc parseManifestInterp(manifest: string): HLSStream =
-  return ParseManifest(manifest.split('\n'))
+proc parseManifestInterp(manifest: string, baseUri: string = ""): HLSStream =
+  return ParseManifest(manifest.split('\n'), baseUri)
 proc indexStream(this: HLSStream, header: string): seq[Head] =
   return this[header]
 proc indexStreamHead(this: Head, key: string): string =
