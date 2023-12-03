@@ -111,7 +111,25 @@ proc SearchDownloader*(this: SNovel, str: string): seq[MetaData] =
 proc SearchDownloader*(this: SVideo, str: string): seq[MetaData] =
   return this.searchDownloader(this, str)
 proc SelResolution*(this: SVideo, tul: MediaStreamTuple) =
-  this.selResolution(this, tul)
+  # Select Resolution Here
+  if this.script != nil:
+    var 
+      vManifest = ParseManifest(splitLines(this.ourClient.getContent(tul.uri)), this.hlsStream.baseUri)
+      vSeq: seq[string] = @[]
+    for part in vManifest.parts:
+      if part.header == "URI":
+        vSeq.add(part.values[0].value)
+    this.videoStream = vSeq
+    for stream in this.mediaStreams:
+      if stream.id == tul.id:
+        var aManifest = ParseManifest(splitLines(this.ourClient.getContent(stream.uri)), this.hlsStream.baseUri)
+        var aSeq: seq[string] = @[]
+        for part in aManifest.parts:
+          aSeq.add(part.values[0].value)
+        this.audioStream = aSeq
+        break
+    return
+  this.selResolution(this, tul) # Un-needed, but in case some downloader requires more.
 
 proc ParseInfoTuple(file: string): InfoTuple =
   var infoTuple: InfoTuple = (name: "", cover: "", scraperType: "", version: "", projectUri: "", siteUri: "", scriptPath: "")
