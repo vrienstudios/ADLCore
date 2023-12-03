@@ -60,6 +60,8 @@ proc attrEquivalenceCheck*(a, b: XmlNode): bool =
   return true
 proc checkEquivalence*(a, b: XmlNode): bool =
   if a.kind == b.kind:
+    if b.attrs == nil:
+      return true
     if a.kind == xnElement:
       # Text comparison can happen somewhere else
       if attrEquivalenceCheck(a, b) and a.tag == b.tag:

@@ -4,7 +4,7 @@ import std/[os, httpclient, htmlparser, xmltree, strutils, base64, json]
 import nimcrypto
 import ../DownloadManager
 # Please follow this layout for any additional sites.
-
+const baseUri: string = "https://anihdplay.com/"
 # Grab the HLS stream for the current video, and sets the stream property for VidStream
 proc SetHLSStream*(this: Video): HLSStream {.nimcall, gcsafe.} =
     let streamingUri: string = "https:" & this.page.findAll("iframe")[0].attr("src")
@@ -75,10 +75,10 @@ proc SetHLSStream*(this: Video): HLSStream {.nimcall, gcsafe.} =
     for strings in bodyUri[1..(len(bodyUri) - 2)]:
       uriArgs.add("&" & strings)
     # Create the final url to request from.
-    let mainReqUri: string = "https://goload.pro/encrypt-ajax.php?id=" & encode(pText) & uriArgs & "&alias=" & encID
+    let mainReqUri: string = baseUri & "encrypt-ajax.php?id=" & encode(pText) & uriArgs & "&alias=" & encID
     this.ourClient.headers = newHttpHeaders({
         "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:101.0) Gecko/20100101 Firefox/101.0",
-        "Referer": "https://gogoplay1.com/streaming.php",
+        "Referer": baseUri & "streaming.php",
         "x-requested-with": "XMLHttpRequest",
         "Accept": "*/*",
         "Accept-Encoding": "identity",
@@ -134,7 +134,7 @@ proc GetEpisodeSequence(this: Video): seq[MetaData] {.nimcall, gcsafe.} =
     if node.kind != xnElement: continue
     if node.tag != "li": continue
     var mdata: MetaData = MetaData()
-    mdata.uri = "https://anihdplay.com" & node.child("a").attr("href")
+    mdata.uri = baseUri & node.child("a").attr("href")
     mdata.coverUri = recursiveNodeSearch(node, parseHtml("<div class=\"img\">")).child("div").child("img").attr("href")
     mdata.name = sanitizeString(recursiveNodeSearch(node, parseHtml("<div class=\"name\">")).innerText)
     mDataSeq.add mdata
@@ -181,7 +181,7 @@ proc ListResolutions(this: Video): seq[MediaStreamTuple] {.nimcall, gcsafe.} =
 proc DownloadNextVideoPart(this: Video, path: string): bool {.nimcall, gcsafe.} =
   this.ourClient.headers = newHttpHeaders({
       "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:101.0) Gecko/20100101 Firefox/101.0",
-      "Referer": "https://gogoplay1.com/streaming.php",
+      "Referer": baseUri & "streaming.php",
       "x-requested-with": "XMLHttpRequest",
       "Accept": "*/*",
       "Accept-Encoding": "identity",
@@ -211,7 +211,7 @@ proc DownloadNextVideoPart(this: Video, path: string): bool {.nimcall, gcsafe.} 
 proc DownloadNextAudioPart(this: Video, path: string): bool {.nimcall, gcsafe.} =
   this.ourClient.headers = newHttpHeaders({
       "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:101.0) Gecko/20100101 Firefox/101.0",
-      "Referer": "https://gogoplay1.com/streaming.php",
+      "Referer": baseUri & "streaming.php",
       "x-requested-with": "XMLHttpRequest",
       "Accept": "*/*",
       "Accept-Encoding": "identity",
@@ -232,20 +232,20 @@ proc DownloadNextAudioPart(this: Video, path: string): bool {.nimcall, gcsafe.} 
 proc Search*(this: Video, str: string): seq[MetaData] {.nimcall, gcsafe.} =
   this.ourClient.headers = newHttpHeaders({
         "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:101.0) Gecko/20100101 Firefox/101.0",
-        "Referer": "https://gogoplay1.com/",
+        "Referer": baseUri,
         "x-requested-with": "XMLHttpRequest",
         "Accept": "*/*",
         "Accept-Encoding": "identity",
   })
-  let content = this.ourClient.getContent("https://gogoplay1.com/ajax-search.html?keyword=" & str & "&id=-1")
+  let content = this.ourClient.getContent(baseUri & "ajax-search.html?keyword=" & str & "&id=-1")
   let json = parseJson(content)
   var results: seq[MetaData] = @[]
   this.page = parseHtml(json["content"].getStr())
-  this.currPage = "https://gogoplay1.com"
+  this.currPage = baseUri
   for a in this.page.findAll("a"):
     var data = MetaData()
     data.name = a.innerText
-    data.uri = "https://gogoplay1.com" & a.attr("href")
+    data.uri = baseUri & a.attr("href")
     results.add(data)
   return results
 
@@ -270,9 +270,9 @@ proc getHomeCarousel(this: Video): seq[MetaData] {.nimcall, gcsafe.} =
 proc Init*(uri: string): HeaderTuple {.nimcall.} =
     let defaultHeaders = newHttpHeaders({
         "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:101.0) Gecko/20100101 Firefox/101.0",
-        "Referer": "https://gogoplay1.com",
+        "Referer": baseUri,
         "Accept": "*/*",
-        "Origin": "https://gogoplay1.com",
+        "Origin": baseUri,
         "Accept-Encoding": "identity",
         "sec-fetch-site": "same-origin",
         "sec-fetch-mode": "no-cors"

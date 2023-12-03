@@ -38,11 +38,14 @@ converter toSVideo*(x: Video): SVideo =
     searchDownloader: x.searchDownloader, getCover: x.getCover, getNext: x.getNext,
     selResolution: x.selResolution, listResolution: x.listResolution, downloadNextVideoPart: x.downloadNextVideoPart,
     downloadNextAudioPart: x.downloadNextAudioPart)
-proc `defaultPage=`*(x: var SNovel, page: string) =
+proc SetDefaultPage*(x: SNovel, page: string) =
   x.defaultPage = page
-  if x.script != nil:
-    x.script.intr.invoke(SetDefaultPage, page)
-
+  if x.script == nil: return
+  x.script.intr.invoke(SetDefaultPage, page)
+proc SetDefaultPage*(x: SVideo, page: string) =
+  x.defaultPage = page
+  if x.script == nil: return
+  x.script.intr.invoke(SetDefaultPage, page)
 var NScripts: seq[NScript] = @[]
 var NScriptClient: HttpClient
 
@@ -93,9 +96,15 @@ proc GetNodes*(this: SNovel, chapter: Chapter): seq[TiNode] =
 
 ## TODO/VERIFY
 proc GetStream*(this: SVideo): HLSStream =
+  if this.script != nil:
+    let stream = this.script.intr.invoke(GetHLSStream, returnType = HLSStream)
+    this.hlsStream = stream
+    return
   this.hlsStream = this.getStream(this)
   return this.hlsStream
 proc ListResolutions*(this: SVideo): seq[MediaStreamTuple] =
+  if this.script != nil:
+    return this.script.intr.invoke(GetResolutions, this.hlsStream, returnType = seq[MediaStreamTuple])
   return this.listResolution(this)
 proc SearchDownloader*(this: SNovel, str: string): seq[MetaData] =
   return this.searchDownloader(this, str)
@@ -159,11 +168,17 @@ proc processHttpRequest(uri: string, scriptID: int, headers: seq[tuple[key: stri
       return "404"
     else:
       return request.body
-
-
+proc parseManifestInterp(manifest: string): HLSStream =
+  return ParseManifest(manifest.split('\n'))
+proc indexStream(this: HLSStream, header: string): seq[Head] =
+  return this[header]
+proc indexStreamHead(this: Head, key: string): string =
+  return this[key]
 exportTo(ADLNovel,
   InfoTuple, Status, NodeKind, LanguageType, MetaData,
-  ImageKind, Image, TiNode, Chapter,
+  ImageKind, Image, TiNode, Chapter, MediaStreamTuple,
+  Param, Head, HLSStream, parseManifestInterp, indexStream,
+  indexStreamHead, 
   processHttpRequest, SeekNode, sanitizeString)
 
 const novelInclude = implNimScriptModule(ADLNovel)
@@ -173,7 +188,7 @@ proc GenNewScript*(path: string): NScript =
     NScriptClient = newHttpClient()
   var script: NScript = NScript()
   let scr = NimScriptPath(path)
-  script.intr = loadScript(scr, novelInclude, ["xmltree", "htmlparser"])
+  script.intr = loadScript(scr, novelInclude, ["json", "xmltree", "htmlparser", "strutils"])
   script.headerInfo = ReadScriptInfoTuple(path)
   NScripts.add script
   script.intr.invoke(SetID, len(NScripts))
