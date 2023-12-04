@@ -38,11 +38,11 @@ converter toSVideo*(x: Video): SVideo =
     searchDownloader: x.searchDownloader, getCover: x.getCover, getNext: x.getNext,
     selResolution: x.selResolution, listResolution: x.listResolution, downloadNextVideoPart: x.downloadNextVideoPart,
     downloadNextAudioPart: x.downloadNextAudioPart)
-proc SetDefaultPage*(x: SNovel, page: string) =
+proc setDefaultPage*(x: SNovel, page: string) =
   x.defaultPage = page
   if x.script == nil: return
   x.script.intr.invoke(SetDefaultPage, page)
-proc SetDefaultPage*(x: SVideo, page: string) =
+proc setDefaultPage*(x: SVideo, page: string) =
   x.defaultPage = page
   if x.script == nil: return
   x.script.intr.invoke(SetDefaultPage, page)
@@ -73,11 +73,11 @@ proc processHttpRequest(uri: string, scriptID: int, headers: seq[tuple[key: stri
       return "404"
     else:
       return request.body
-proc DownloadNextAudioPart*(this: SVideo, path: string): bool =
+proc downloadNextAudioPart*(this: SVideo, path: string): bool =
   if this.script == nil:
     return this.downloadNextAudioPart(this, path)
   return this.script.intr.invoke(DownloadNextAudioPart, path, returnType = bool)
-proc DownloadNextVideoPart*(this: SVideo, path: string): bool =
+proc downloadNextVideoPart*(this: SVideo, path: string): bool =
   if this.script == nil:
     return this.downloadNextVideoPart(this, path)
   if this.videoCurrIdx >= len(this.videoStream):
@@ -104,7 +104,7 @@ proc DownloadNextVideoPart*(this: SVideo, path: string): bool =
   close(file)
   return true
   
-proc GetChapterSequence*(this: SNovel): seq[Chapter] =
+proc getChapterSequence*(this: SNovel): seq[Chapter] =
   var chapters: seq[Chapter] = @[]
   if this.script == nil:
     chapters = this.getChapterSequence(this)
@@ -112,48 +112,48 @@ proc GetChapterSequence*(this: SNovel): seq[Chapter] =
     chapters = this.script.intr.invoke(GetChapterSequence, returnType = seq[Chapter])
   this.chapters = chapters
   return chapters
-proc GetEpisodeSequence*(this: SVideo): seq[MetaData] =
+proc getEpisodeSequence*(this: SVideo): seq[MetaData] =
   if this.script == nil:
     return this.getEpisodeSequence(this)
   return this.script.intr.invoke(GetEpisodeSequence, returnType = seq[MetaData])
-proc GetNovelHomeCarousel*(this: SNovel): seq[MetaData] =
+proc getNovelHomeCarousel*(this: SNovel): seq[MetaData] =
   if this.script == nil:
     return this.getHomeCarousel(this)
   return this.script.intr.invoke(GetNovelHomeCarousel, returnType = seq[MetaData])
-proc GetVideoHomeCarousel*(this: SVideo): seq[MetaData] =
+proc getVideoHomeCarousel*(this: SVideo): seq[MetaData] =
   return this.getHomeCarousel(this)
-proc GetMetaData*(this: SNovel): MetaData =
+proc getMetaData*(this: SNovel): MetaData =
   if this.script == nil:
     this.metaData = this.getMetaData(this)
   else:  this.metaData = this.script.intr.invoke(GetMetaData, returnType = MetaData)
   return this.metaData
-proc GetMetaData*(this: SVideo): MetaData =
+proc getMetaData*(this: SVideo): MetaData =
   if this.script == nil:
     this.metaData = this.getMetaData(this)
   else:  this.metaData = this.script.intr.invoke(GetMetaData, returnType = MetaData)
   return this.metaData
-proc GetNodes*(this: SNovel, chapter: Chapter): seq[TiNode] =
+proc getNodes*(this: SNovel, chapter: Chapter): seq[TiNode] =
   if this.script == nil:
     return this.getNodes(this, chapter)
   return this.script.intr.invoke(GetNodes, chapter, returnType = seq[TiNode])
 
 ## TODO/VERIFY
-proc GetStream*(this: SVideo): HLSStream =
+proc getStream*(this: SVideo): HLSStream =
   if this.script != nil:
     let stream = this.script.intr.invoke(GetHLSStream, returnType = HLSStream)
     this.hlsStream = stream
     return
   this.hlsStream = this.getStream(this)
   return this.hlsStream
-proc ListResolutions*(this: SVideo): seq[MediaStreamTuple] =
+proc listResolutions*(this: SVideo): seq[MediaStreamTuple] =
   if this.script != nil:
     return this.script.intr.invoke(GetResolutions, this.hlsStream, returnType = seq[MediaStreamTuple])
   return this.listResolution(this)
-proc SearchDownloader*(this: SNovel, str: string): seq[MetaData] =
+proc searchDownloader*(this: SNovel, str: string): seq[MetaData] =
   return this.searchDownloader(this, str)
-proc SearchDownloader*(this: SVideo, str: string): seq[MetaData] =
+proc searchDownloader*(this: SVideo, str: string): seq[MetaData] =
   return this.searchDownloader(this, str)
-proc SelResolution*(this: SVideo, tul: MediaStreamTuple) =
+proc selResolution*(this: SVideo, tul: MediaStreamTuple) =
   # Select Resolution Here
   if this.script != nil:
     var streams = this.script.intr.invoke(SetResolution, (tul, this.hlsStream.baseUri), returnType = tuple[video: seq[string], audio: seq[string]])
@@ -162,7 +162,7 @@ proc SelResolution*(this: SVideo, tul: MediaStreamTuple) =
     return
   this.selResolution(this, tul) # Un-needed, but in case some downloader requires more.
 
-proc ParseInfoTuple(file: string): InfoTuple =
+proc parseInfoTuple(file: string): InfoTuple =
   var infoTuple: InfoTuple = (name: "", cover: "", scraperType: "", version: "", projectUri: "", siteUri: "", scriptPath: "")
   var lines = file.splitLines
   for line in lines:
@@ -192,8 +192,8 @@ proc ParseInfoTuple(file: string): InfoTuple =
     else: break
   return infoTuple
 
-proc ReadScriptInfoTuple*(path: string): InfoTuple =
-  var infoTuple = ParseInfoTuple(readFile(path))
+proc readScriptInfoTuple*(path: string): InfoTuple =
+  var infoTuple = parseInfoTuple(readFile(path))
   infoTuple.scriptPath = path
   return infoTuple
 proc parseManifestInterp(manifest: string, baseUri: string = ""): HLSStream =
@@ -211,20 +211,20 @@ exportTo(ADLNovel,
 
 const novelInclude = implNimScriptModule(ADLNovel)
 
-proc GenNewScript*(path: string): NScript =
+proc generateNewScript*(path: string): NScript =
   if NScriptClient == nil:
     NScriptClient = newHttpClient()
   var script: NScript = NScript()
   let scr = NimScriptPath(path)
   script.intr = loadScript(scr, novelInclude, ["json", "xmltree", "htmlparser", "strutils"])
-  script.headerInfo = ReadScriptInfoTuple(path)
+  script.headerInfo = readScriptInfoTuple(path)
   NScripts.add script
   script.intr.invoke(SetID, len(NScripts))
   return script
 
-proc ScanForScriptsInfoTuple*(folderPath: string): seq[Interp.InfoTuple] =
+proc scanForScriptsInfoTuple*(folderPath: string): seq[Interp.InfoTuple] =
   var scripts: seq[Interp.InfoTuple] = @[]
   for n in walkFiles(folderPath / "*.nims"):
-    var tup = ReadScriptInfoTuple(n)
+    var tup = readScriptInfoTuple(n)
     scripts.add(tup)
   return scripts
