@@ -4,7 +4,7 @@ import std/[os, httpclient, htmlparser, xmltree, strutils, base64, json]
 import nimcrypto
 import ../DownloadManager
 # Please follow this layout for any additional sites.
-const baseUri: string = "https://anihdplay.com/"
+const baseUri: string = "https://embtaku.pro/"
 # Grab the HLS stream for the current video, and sets the stream property for VidStream
 proc SetHLSStream*(this: Video): HLSStream {.nimcall, gcsafe.} =
     let streamingUri: string = "https:" & this.page.findAll("iframe")[0].attr("src")
