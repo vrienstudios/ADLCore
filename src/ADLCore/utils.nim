@@ -39,13 +39,17 @@ proc evp_BytesToKey*(passwordz, saltz: string): tuple[key, iv: string] =
   copyMem(addr iv[0], addr hashes[32], 16)
   return (key, iv)
 # Incomplete
-proc padPKSC7(data: string, padding: byte, paddingLength: int): string =
-  var plain: string = newString(1)
-  var idx: int = 0
-  while idx < paddingLength:
-    copyMem(addr plain[len(data) + idx], addr padding, 1)
+proc padPKSC7*(data: string): string =
+  var 
+    outString: string = newString(aes256.sizeBlock)
+    padLen: int = aes128.sizeBlock - (len(data) mod aes128.sizeBlock)
+    padding: byte = byte padLen
+    idx: int = 0
+  copyMem(addr outString[0], addr data[0], len(data))
+  while idx < padLen:
+    copyMem(addr outString[len(data) + idx], addr padding, 1)
     inc idx
-  return plain
+  return outString
   
 proc aes256Decrypt(data, password: string): string =
   assert len(data) > 0
