@@ -40,6 +40,7 @@ type
     contentSeq*: seq[TiNode]
   Volume* = ref object of RootObj
     mdat*: MetaData
+    baseUri*: string
     lower*, upper: int 
     sResult*: bool
     index*: int
