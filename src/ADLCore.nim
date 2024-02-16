@@ -56,13 +56,27 @@ type
     defaultPage*: string
     currPage*: string
     baseUri*: string
-    setMetadata*, setSearch*, setParts*, setContent*: proc(this: var DownloaderContext)
+    setMetadataP, setSearchP, setPartsP, setContentP: proc(this: var DownloaderContext)
 
+proc `[]`*(ctx: var DownloaderContext, idx: int): var Volume =
+  return ctx.sections[idx]
+proc `[]`*(ctx: var DownloaderContext, x, y: int): var Chapter =
+  return ctx.sections[x].parts[y]
+proc isNil*(ctx: DownloaderContext): bool =
+    return (ctx.setMetadataP == nil or ctx.setSearchP == nil or ctx.setPartsP == nil or ctx.setContentP == nil)
 proc setPage(this: var DownloaderContext, page: string) =
   if this.currPage == page:
     return
   this.page = parseHtml(this.ourClient.getContent(page))
   this.currPage = page
+proc setDefaultHeaders(this: var DownloaderContext) =
+  this.ourClient.headers = newHttpHeaders({
+    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:101.0) Gecko/20100101 Firefox/101.0",
+    "Referer": this.baseUri,
+    "x-requested-with": "XMLHttpRequest",
+    "Accept": "*/*",
+    "Accept-Encoding": "identity",
+  })
 proc parseSubStream(hlsBase: HLSStream): seq[MediaStreamTuple] =
   var medStream: seq[MediaStreamTuple] = @[]
   var index: int = 0
@@ -225,13 +239,6 @@ proc loadEmbtakuMetadata(this: var DownloaderContext) =
   var vol = Volume(mdat: meta, lower: -1, upper: -1)
   this.sections.add vol
 proc loadEmbtakuSearch(this: var Downloadercontext) =
-  this.ourClient.headers = newHttpHeaders({
-        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:101.0) Gecko/20100101 Firefox/101.0",
-        "Referer": this.baseUri,
-        "x-requested-with": "XMLHttpRequest",
-        "Accept": "*/*",
-        "Accept-Encoding": "identity",
-  })
   let 
     content = this.ourClient.getContent(this.baseUri / "ajax-search.html?keyword=" & this.name & "&id=-1")
     json = parseJson(content)
@@ -290,61 +297,27 @@ proc loadNovelHallChapters(this: var DownloaderContext) =
 proc loadNovelHallMetadata(this: var DownloaderContext) =
   setPage(this, this.defaultPage)
   var metadata: MetaData = MetaData()
-  for element in this.page.findall("div"):
-    if element.attr("class") != "book-main inner mt30":
-      continue
-    for bookEl in element.items:
-      if bookEl.kind != xnElement:
-        continue
-      let bookElClass = bookEl.attr("class")
-      if bookElClass == "book-img hidden-xs":
-        metadata.coverUri = bookEl.child("img").attr("src")
-        continue
-      if bookElClass == "book-info":
-        metadata.name = sanitizeString(bookEl.child("h1").innerText)
-        for descItem in bookEl.items:
-          if descItem.kind != xnElement:
-            continue
-          let descClass = descItem.attr("class")
-          if descClass == "total booktag":
-            for descItems in descItem.items:
-              let descItemClass = descItems.attr("class")
-              if descItemClass == "red":
-                metadata.genre.add descItems.innerText
-                continue
-              if descItems.attr("class") == "blue":
-                if descItems.innerText.contains("Author"):
-                  let mString = descItems.innerText.split('\n')[0]
-                  # NIM hack, since it doesn't play well with full-width semicolon literal.
-                  var i: int = skipUntil(descItems.innerText, "："[0]) + 3
-                  metadata.author = newString(len(mString) + 3)
-                  while i < len(mString) - 1:
-                    metadata.author[i] = mString[i]
-                    inc i
-                  metadata.author = sanitizeString(metadata.author)
-                elif descItems.innerText.contains("Status"):
-                  let mString = descItems.innerText
-                  # NIM hack, since it doesn't play well with full-width semicolon literal.
-                  var i: int = skipUntil(descItems.innerText, "："[0]) + 3
-                  var d: int = 0
-                  var k = ""
-                  while i < len(mString):
-                    k.add(mString[i])
-                    inc i
-                    inc d
-                  metadata.statusType = parseEnum[Status](sanitizeString(k))
-            continue
-          if bookElClass == "info":
-            let 
-              seqNodes: seq[XmlNode] = bookEl.items.toSeq()
-              interest = seqNodes[len(seqNodes) - 1]
-            metadata.description = sanitizeString(interest.items.toSeq()[0].innerText)
-            this.sections.add Volume(mdat: metadata, lower: -1, upper: -1)
-
+  let 
+    bookPage = recursiveNodeSearch(this.page, parseHtml("<div class=\"book-info\">"))
+    underInfo = recursiveNodeSearch(bookPage, parseHtml("<div class=\"total booktag\">"))
+    introInfo = recursiveNodeSearch(bookPage, parseHtml("<div class=\"intro\">"))
+  metadata.name = bookPage.child("h1").innerText
+  for i in underInfo.findAll("a"):
+    metadata.genre.add i.innerText
+  for i in underInfo.findAll("span"):
+    let inner = i.innerText[0..5]
+    if inner == "Author":
+      metadata.author = i[0].innerText[9..^1]
+      break
+      # TODO: Add enum and update time later.
+  metadata.coverUri = introInfo.child("img").attr("src")
+  metadata.description = sanitizeString(introInfo.child("span")[0].innerText)
+  var vol = Volume(mdat: metadata, lower: -1, upper: -1)
+  this.sections.add vol
 const downloaderList: array[5, MethodList] =
   [("embtaku.pro", "video", [("metadata", loadEmbtakuMetadata), ("parts", loadEmbtakuChapters), ("search", loadEmbtakuSearch), ("content", loadEmbtakuHLS), ("home", nil)]),
     ("hanime.tv", "video", [("metadata", nil), ("parts", nil), ("search", nil), ("content", nil), ("home", nil)]),
-    ("novelhall.com", "text", [("metadata", loadNovelHallMetadata), ("parts", loadNovelHallChapters), ("search", loadNovelHallSearch), ("content", nil), ("home", nil)]),
+    ("www.novelhall.com", "text", [("metadata", loadNovelHallMetadata), ("parts", loadNovelHallChapters), ("search", loadNovelHallSearch), ("content", nil), ("home", nil)]),
     ("mangakakalot.com", "text", [("metadata", nil), ("parts", nil), ("search", nil), ("content", nil), ("home", nil)]),
     ("", "script", [("metadata", nil), ("parts", nil), ("search", nil), ("content", nil), ("home", nil)])]
 
@@ -353,25 +326,38 @@ proc setupDownloader(this: MethodList, downloader: var DownloaderContext) =
   for meth in this.procs:
     case meth.procType:
       of "metadata":
-        downloader.setMetadata = meth.thisProc
+        downloader.setMetadataP = meth.thisProc
       of "parts":
-        downloader.setParts = meth.thisProc
+        downloader.setPartsP = meth.thisProc
       of "search":
-        downloader.setSearch = meth.thisProc
+        downloader.setSearchP = meth.thisProc
       of "content":
-        downloader.setContent = meth.thisProc
+        downloader.setContentP = meth.thisProc
       else:
         continue
   return
-proc generateContext*(baseUri: string): DownloaderContext =
+proc generateContext*(baseUri, fullUri: string): DownloaderContext =
   for uri in downloaderList:
     if baseUri == uri.baseUri:
-      var downloader = DownloaderContext(ourClient: newHttpClient())
+      var downloader = DownloaderContext(ourClient: newHttpClient(), baseUri: "https://" & baseUri & "/", defaultPage: fullUri)
+      setDefaultHeaders(downloader)
       uri.setupDownloader(downloader)
       return downloader
   return nil
-
-
+proc shiftContext*(ctx: var DownloaderContext, baseUri, fullUri: string) =
+  ctx.baseUri = baseUri
+  ctx.defaultPage = fullUri
+  for uri in downloaderList:
+    if baseUri == uri.baseUri:
+      uri.setupDownloader(ctx)
+proc setMetadata*(ctx: var DownloaderContext) =
+  ctx.setMetadataP(ctx)
+proc setSearch*(ctx: var DownloaderContext) =
+  ctx.setSearchP(ctx)
+proc setParts*(ctx: var DownloaderContext) =
+  ctx.setPartsP(ctx)
+proc setContent*(ctx: var DownloaderContext) =
+  ctx.setContentP(ctx)
 #let script = GenNewScript(ScanForScriptsInfoTuple("/mnt/General/work/Programming/ADLCore/src/")[0])
 #let mdata = script[0].GetMetaData("https://www.volarenovels.com/novel/physician-not-a-consort")
 #echo mdata.name
