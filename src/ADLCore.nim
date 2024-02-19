@@ -44,6 +44,7 @@ type
   Volume* = ref object of RootObj
     mdat*: MetaData
     baseUri*: string
+    jDat: JsonNode
     lower*, upper: int 
     sResult*: bool
     index*: int
@@ -228,7 +229,7 @@ proc loadHAnimeMetadata(ctx: var DownloaderContext) =
   meta.author = jObj["brand"].getStr()
   meta.coverUri = jObj["cover_url"].getStr()
   meta.uri = "https://www.hanime.tv/" & jObj["slug"].getStr()
-  var vol = Volume(mdat: meta, lower: -1, upper: -1)
+  var vol = Volume(mdat: meta, lower: -1, upper: -1, jDat: videoData)
   ctx.sections.add vol
 #proc loadHAnimeChapters(ctx: var DownloaderContext) = 
 iterator embtakuGetChapter(this: var DownloaderContext, l, h: int): Chapter =
