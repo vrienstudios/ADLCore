@@ -13,7 +13,9 @@ task test, "Test ADLCore Functionality":
   exec "nimble install -Y" # Install latest version
   withDir "tests":
     exec "nim c -d:ssl --threads:on -r tester"
-
+task dbg, "Build ADLCore for debugging":
+  withDir "src":
+    exec "nim c -d:ssl --threads:on ADLCore.nim"
 # Dependencies
 
 requires "nim >= 1.6.6"

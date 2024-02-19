@@ -27,7 +27,7 @@ type
     uri: string
     resolution: string
   MethodList* = 
-    tuple[baseUri, dType: string, procs: array[5, tuple[procType: string, thisProc: proc(this: var DownloaderContext){.nimcall,gcsafe.}]]]
+    tuple[baseUri, dType: string, procs: seq[tuple[procType: string, thisProc: proc(this: var DownloaderContext){.nimcall,gcsafe.}]]]
   NScript* = ref object
     headerInfo*: InfoTuple
     scriptID: int
@@ -36,6 +36,9 @@ type
   StreamTuple* = tuple[stream: HLSStream, subStreams: seq[MediaStreamTuple]]
   Chapter* = ref object of RootObj
     metadata*: MetaData
+    streamIndex*: int
+    selStream*: seq[string]
+    key, iv: string
     mainStream*: StreamTuple
     contentSeq*: seq[TiNode]
   Volume* = ref object of RootObj
@@ -47,6 +50,7 @@ type
     parts*: seq[Chapter]
   DownloaderContext* = ref object of RootObj
     name*: string
+    downloadPath*: string
     script: NScript
     upper, lower: int
     index*: int
@@ -57,14 +61,68 @@ type
     defaultPage*: string
     currPage*: string
     baseUri*: string
-    setMetadataP, setSearchP, setPartsP, setContentP: proc(this: var DownloaderContext)
+    setMetadataP, setSearchP, setPartsP, setContentP, prepareP: proc(this: var DownloaderContext)
 
-proc `[]`*(ctx: var DownloaderContext, idx: int): var Volume =
+proc `[]`*(vol: var Volume, idx: int): var Chapter =
+  return vol.parts[idx]
+proc `[]`*(ctx: var DownloaderContext, idx: int): Volume =
   return ctx.sections[idx]
-proc `[]`*(ctx: var DownloaderContext, x, y: int): var Chapter =
+proc `[]`*(ctx: var DownloaderContext, x, y: int): Chapter =
   return ctx.sections[x].parts[y]
+proc section*(ctx: var DownloaderContext): Volume =
+  return ctx.sections[ctx.index]
+proc chapter*(ctx: var DownloaderContext): Chapter =
+  var vol = ctx.sections[ctx.index]
+  return vol[vol.index]
+iterator walkSections*(ctx: var DownloaderContext): Volume =
+  ctx.index = 0
+  while ctx.index < ctx.sections.len:
+    yield ctx.section
+    inc ctx.index
+  ctx.index = 0
+iterator walkChapters*(ctx: var DownloaderContext): Chapter =
+  ctx.section.index = 0
+  while ctx.section.index < ctx.section.parts.len:
+    yield ctx.chapter
+    inc ctx.section.index
+  ctx.section.index = 0
 proc isNil*(ctx: DownloaderContext): bool =
     return (ctx.setMetadataP == nil or ctx.setSearchP == nil or ctx.setPartsP == nil or ctx.setContentP == nil)
+# Author: @Tsu
+proc parseInfoTuple(file: string): InfoTuple =
+  var infoTuple: InfoTuple = (name: "", cover: "", scraperType: "", version: "", projectUri: "", siteUri: "", scriptPath: "")
+  var lines = file.splitLines
+  for line in lines:
+    var str = line.strip
+    if str == "": continue
+    if str.startsWith("#"):
+      str.removePrefix('#')
+      str = str.strip
+      var pair = str.split(':')
+      if pair.len < 2: continue
+      var key = pair[0].strip
+      pair.delete(0)
+      var value = pair.join(":").strip
+      case key:
+        of "name":
+          infoTuple.name = value
+        of "cover":
+          infoTuple.cover = value
+        of "scraperType":
+          infoTuple.scraperType = value
+        of "version":
+          infoTuple.version = value
+        of "projectUri":
+          infoTuple.projectUri = value
+        of "siteUri":
+          infoTuple.siteUri = value
+    else: break
+  return infoTuple
+# Author: @Tsu
+proc readScriptInfoTuple*(path: string): InfoTuple =
+  var infoTuple = parseInfoTuple(readFile(path))
+  infoTuple.scriptPath = path
+  return infoTuple
 proc setPage(this: var DownloaderContext, page: string) =
   if this.currPage == page:
     return
@@ -109,6 +167,39 @@ proc parseSubStream(hlsBase: HLSStream): seq[MediaStreamTuple] =
       medStream.add((id: id, resolution: resolution, uri: uri, language: "", isAudio: false, bandWidth: bandwidth))
     inc index
   return medStream
+proc selectResolution*(this: var DownloaderContext, id: string) =
+  var mTuple: MediaStreamTuple
+  var chapter: Chapter = this.chapter
+  for sub in chapter.mainStream.subStreams:
+    if sub.id != id:
+      continue
+    mTuple = sub
+    break
+  var vManifest = ParseManifest(splitLines(this.ourClient.getContent(mTuple.uri)), chapter.mainStream.stream.baseUri)
+  var vSeq: seq[string] = @[]
+  for part in vManifest.parts:
+    if part.header == "URI":
+      vSeq.add(part.values[0].value)
+  chapter.selStream = vSeq
+proc loadHAnimeMetadata(ctx: var DownloaderContext) =
+  setPage(ctx, ctx.defaultPage)
+  var
+    meta: MetaData = MetaData()
+    jsonData: string
+  for script in ctx.page.findAll("script"):
+    if script.innerText.contains("__NUXT__"):
+      jsonData = script.innerText[16..^2]
+      break
+  var videoData = parseJson(jsonData)["state"]["data"]["video"]
+  let jObj = videoData["hentai_video"]
+  meta.name = jObj["name"].getStr()
+  meta.description = parseHtml(jObj["description"].getStr()).innerText
+  meta.author = jObj["brand"].getStr()
+  meta.coverUri = jObj["cover_url"].getStr()
+  meta.uri = "https://www.hanime.tv/" & jObj["slug"].getStr()
+  var vol = Volume(mdat: meta, lower: -1, upper: -1)
+  ctx.sections.add vol
+#proc loadHAnimeChapters(ctx: var DownloaderContext) = 
 iterator embtakuGetChapter(this: var DownloaderContext, l, h: int): Chapter =
   setPage(this, this.defaultPage)
   var videoList: XmlNode =
@@ -131,9 +222,7 @@ iterator embtakuGetChapter(this: var DownloaderContext, l, h: int): Chapter =
     mdata.name = sanitizeString(recursiveNodeSearch(node, parseHtml("<div class=\"name\">")).innerText)
     yield Chapter(metadata: mdata)
 proc loadEmbtakuHLS(ctx: var DownloaderContext) =
-  var 
-    cVolume: Volume = ctx.sections[ctx.index]
-    this: Chapter = cVolume.parts[cVolume.index]
+  var this: Chapter = ctx.chapter
   setPage(ctx, this.metadata.uri)
   setPage(ctx, "https:" & ctx.page.findAll("iframe")[0].attr("src"))
   let pageScripts = ctx.page.findAll("script")
@@ -256,6 +345,11 @@ proc loadEmbtakuChapters(this: var DownloaderContext) =
   var vol: Volume = this.sections[this.index]
   for chap in embtakuGetChapter(this, this.lower, this.upper):
     vol.parts.add chap
+proc loadEmbtakuChapterData(this: var Downloadercontext) =
+  var chapter = this.chapter
+  let videoData: string = this.ourClient.getContent(chapter.selStream[chapter.streamIndex])
+  inc chapter.streamIndex
+  chapter.contentSeq.add TiNode(text: videoData)
 proc loadNovelHallSearch(this: var DownloaderContext) =
   let 
     content = this.ourClient.getContent("https://www.novelhall.com/index.php?s=so&module=book&keyword=" & this.name.replace(' ', '&'))
@@ -271,6 +365,7 @@ proc loadNovelHallSearch(this: var DownloaderContext) =
       data.name = uriBN.innerText
       data.uri = "https://www.novelhall.com" & uriBN.attr("href")
       this.sections.add Volume(mdat: data, lower: -1, upper: -1, sResult: true)
+    return
 iterator novelhallGetChapter(this: var DownloaderContext, l, h: int): Chapter =
   setPage(this, this.defaultPage)
   let chapterList: XmlNode =
@@ -295,6 +390,30 @@ proc loadNovelHallChapters(this: var DownloaderContext) =
   var vol: Volume = this.sections[this.index]
   for chap in novelhallGetChapter(this, vol.lower, vol.upper):
     vol.parts.add chap
+proc getNovelHallChapterDataFromPage(page: XmlNode): seq[TiNode] =
+  var nodes: seq[TiNode] = @[]
+  for i in page.findAll("div"):
+    if i.attr("class") != "entry-content":
+      continue
+    var ourNode = TiNode(text: "")
+    for text in i.items:
+      if text.kind == xnText:
+        ourNode.text.add text.innerText
+        continue
+      if text.kind == xnElement:
+        nodes.add ourNode
+        ourNode = TiNode(text: "")
+        continue
+    break
+  return nodes
+proc loadAllNovelHallChapterData(this: var DownloaderContext) =
+  for chapter in this.section.parts:
+    let page = parseHtml(this.ourClient.getContent(chapter.metadata.uri))
+    chapter.contentSeq = getNovelHallChapterDataFromPage(page)
+proc loadNovelHallChapter(this: var DownloaderContext) =
+  var chapter = this.chapter
+  let pageNode: XmlNode = parseHtml(this.ourClient.getContent(chapter.metadata.uri))
+  chapter.contentSeq = getNovelHallChapterDataFromPage(pageNode)
 proc loadNovelHallMetadata(this: var DownloaderContext) =
   setPage(this, this.defaultPage)
   var metadata: MetaData = MetaData()
@@ -316,11 +435,11 @@ proc loadNovelHallMetadata(this: var DownloaderContext) =
   var vol = Volume(mdat: metadata, lower: -1, upper: -1)
   this.sections.add vol
 const downloaderList: array[5, MethodList] =
-  [("embtaku.pro", "video", [("metadata", loadEmbtakuMetadata), ("parts", loadEmbtakuChapters), ("search", loadEmbtakuSearch), ("content", loadEmbtakuHLS), ("home", nil)]),
-    ("hanime.tv", "video", [("metadata", nil), ("parts", nil), ("search", nil), ("content", nil), ("home", nil)]),
-    ("www.novelhall.com", "text", [("metadata", loadNovelHallMetadata), ("parts", loadNovelHallChapters), ("search", loadNovelHallSearch), ("content", nil), ("home", nil)]),
-    ("mangakakalot.com", "text", [("metadata", nil), ("parts", nil), ("search", nil), ("content", nil), ("home", nil)]),
-    ("", "script", [("metadata", nil), ("parts", nil), ("search", nil), ("content", nil), ("home", nil)])]
+  [("embtaku.pro", "video", @[("metadata", loadEmbtakuMetadata), ("parts", loadEmbtakuChapters), ("search", loadEmbtakuSearch), ("prepare", loadEmbtakuHLS), ("content", loadEmbtakuChapterData), ("home", nil)]),
+    ("hanime.tv", "video", @[("metadata", nil), ("parts", nil), ("search", nil), ("content", nil), ("home", nil)]),
+    ("www.novelhall.com", "text", @[("metadata", loadNovelHallMetadata), ("parts", loadNovelHallChapters), ("search", loadNovelHallSearch), ("content", loadNovelHallChapter), ("home", nil)]),
+    ("mangakakalot.com", "text", @[("metadata", nil), ("parts", nil), ("search", nil), ("content", nil), ("home", nil)]),
+    ("", "script", @[("metadata", nil), ("parts", nil), ("search", nil), ("content", nil), ("home", nil)])]
 
 #tuple[baseUri, dType: string, procs: seq[tuple[procType: string, thisProc: proc(this: RootObj)]]]
 proc setupDownloader(this: MethodList, downloader: var DownloaderContext) =
@@ -334,6 +453,8 @@ proc setupDownloader(this: MethodList, downloader: var DownloaderContext) =
         downloader.setSearchP = meth.thisProc
       of "content":
         downloader.setContentP = meth.thisProc
+      of "prepare":
+        downloader.prepareP = meth.thisProc
       else:
         continue
   return
@@ -351,14 +472,36 @@ proc shiftContext*(ctx: var DownloaderContext, baseUri, fullUri: string) =
   for uri in downloaderList:
     if baseUri == uri.baseUri:
       uri.setupDownloader(ctx)
-proc setMetadata*(ctx: var DownloaderContext) =
+proc setMetadata*(ctx: var DownloaderContext): bool =
+  if ctx.setMetadataP == nil:
+    return false
   ctx.setMetadataP(ctx)
-proc setSearch*(ctx: var DownloaderContext) =
+  return true
+proc setSearch*(ctx: var DownloaderContext): bool =
+  if ctx.setSearchP == nil:
+    return false
   ctx.setSearchP(ctx)
-proc setParts*(ctx: var DownloaderContext) =
+  return true
+proc setParts*(ctx: var DownloaderContext): bool =
+  if ctx.setPartsP == nil:
+    return false
   ctx.setPartsP(ctx)
-proc setContent*(ctx: var DownloaderContext) =
+  return true
+proc setContent*(ctx: var DownloaderContext): bool =
+  if ctx.setContentP == nil:
+    return false
   ctx.setContentP(ctx)
+  return true
+proc doPrep*(ctx: var DownloaderContext): bool =
+  if ctx.prepareP == nil:
+    return false
+  ctx.prepareP(ctx)
+  return true
+proc setSearch*(ctx: var DownloaderContext, query: string): bool =
+  if ctx.setSearchP == nil:
+    return false
+  ctx.name = query
+  return true
 #let script = GenNewScript(ScanForScriptsInfoTuple("/mnt/General/work/Programming/ADLCore/src/")[0])
 #let mdata = script[0].GetMetaData("https://www.volarenovels.com/novel/physician-not-a-consort")
 #echo mdata.name
