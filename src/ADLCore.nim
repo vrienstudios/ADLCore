@@ -181,6 +181,37 @@ proc selectResolution*(this: var DownloaderContext, id: string) =
     if part.header == "URI":
       vSeq.add(part.values[0].value)
   chapter.selStream = vSeq
+proc loadHAnimeSearch(ctx: var DownloaderContext) =
+  # https://search.htv-services.com/
+  let mSearchData = %*{
+    "blacklist": [],
+    "brands": [],
+    "order_by": "created_at_unix",
+    "ordering": "desc",
+    "page": 0,
+    "search_text": ctx.name,
+    "tags": [],
+    "tags_mode": "AND"
+  }
+  let defHeaders = newHttpHeaders({
+    "Content-Type": "application/json"
+  })
+  let response = ctx.ourClient.request("https://search.htv-services.com/", httpMethod = HttpPost, body = $mSearchData,
+    headers = defHeaders)
+  let jsonData = parseJson(parseJson(response.body)["hits"].getStr()).getElems()
+  for i in jsonData:
+    var met: MetaData = MetaData()
+    met.name = i["name"].getStr()
+    met.uri = "https://HAnime.tv/videos/hentai/" & i["slug"].getStr()
+    met.coverUri = i["cover_url"].getStr()
+    met.series = i["brand"].getStr()
+    # Contains <p> html element.
+    met.description = parseHtml(i["description"].getStr()).innerText
+    var tags: seq[string] = @[]
+    for tag in i["tags"].getElems():
+      tags.add(tag.getStr())
+    met.genre = tags
+    ctx.sections.add Volume(mdat: met, lower: -1, upper: -1, sResult: true)
 proc loadHAnimeMetadata(ctx: var DownloaderContext) =
   setPage(ctx, ctx.defaultPage)
   var
