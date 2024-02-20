@@ -38,6 +38,7 @@ type
     metadata*: MetaData
     streamIndex*: int
     selStream*: seq[string]
+    jDat: JsonNode
     key, iv: string
     mainStream*: StreamTuple
     contentSeq*: seq[TiNode]
@@ -57,6 +58,7 @@ type
     index*: int
     sections*: seq[Volume]
     ourClient: HttpClient
+    globalKey: string
     page: XmlNode
     defaultHeaders*: HttpHeaders
     defaultPage*: string
@@ -182,6 +184,8 @@ proc selectResolution*(this: var DownloaderContext, id: string) =
     if part.header == "URI":
       vSeq.add(part.values[0].value)
   chapter.selStream = vSeq
+
+# Begin HAnime
 proc loadHAnimeSearch(ctx: var DownloaderContext) =
   # https://search.htv-services.com/
   let mSearchData = %*{
@@ -224,14 +228,51 @@ proc loadHAnimeMetadata(ctx: var DownloaderContext) =
       break
   var videoData = parseJson(jsonData)["state"]["data"]["video"]
   let jObj = videoData["hentai_video"]
-  meta.name = jObj["name"].getStr()
+  meta.name = videoData["hentai_franchise"].getStr()
   meta.description = parseHtml(jObj["description"].getStr()).innerText
   meta.author = jObj["brand"].getStr()
   meta.coverUri = jObj["cover_url"].getStr()
   meta.uri = "https://www.hanime.tv/" & jObj["slug"].getStr()
   var vol = Volume(mdat: meta, lower: -1, upper: -1, jDat: videoData)
+  if ctx.globalKey == "":
+    ctx.globalKey = ctx.ourClient.getContent("https://hanime.tv/sign.bin")
   ctx.sections.add vol
-#proc loadHAnimeChapters(ctx: var DownloaderContext) = 
+proc loadHAnimeChapters(ctx: var DownloaderContext) =
+  # hentai_franchise_hentai_videos
+  let 
+    seriesData = ctx.section.jDat["hentai_franchise_hentai_videos"].getElems()
+  for episode in seriesData:
+    var metaData = MetaData(name: episode["name"].getStr(), uri: "https://" & ctx.baseUri & episode["slug"].getStr())
+    ctx.section.parts.add Chapter(metadata: metaData, key: ctx.globalKey)
+proc loadHAnimeRes*(ctx: var Downloadercontext) =
+  var streams: seq[MediaStreamTuple] = @[]
+  assert ctx.chapter.jDat != nil
+  let servers = ctx.chapter.jDat["video_manifest"]["servers"]
+  for res in servers.getElems()[0]["streams"].getElems():
+    if res["url"].getStr() == "":
+      continue
+    streams.add (id: $res["id"].getInt(),
+      resolution: res["width"].getStr() & "x" & res["height"].getStr(),
+      uri: res["url"].getStr(), language: "english",
+      isAudio: false, bandWidth: "unknown")
+  ctx.chapter.mainStream.subStreams = streams
+proc loadHAnimeContent*(ctx: var DownloaderContext) =
+  var 
+    chp = ctx.chapter
+    encryptedContent: string = ctx.ourClient.getContent(chp.selStream[chp.streamIndex])
+    outContent = newString(len(encryptedContent))
+    cIdx = $(chp.streamIndex + 1)
+    iv: string = newString(aes128.sizeBlock)
+    dContext: CBC[aes128]
+  assert chp.selStream.len != 0
+  copyMem(addr iv[0], addr cIdx[0], len(cIdx))
+  dContext.init(ctx.globalKey, iv)
+  dContext.decrypt(encryptedContent, outContent)
+  dContext.clear()
+  chp.contentSeq.add TiNode(text: outContent)
+  inc chp.streamIndex
+
+# Begin Embtaku
 iterator embtakuGetChapter(this: var DownloaderContext, l, h: int): Chapter =
   setPage(this, this.defaultPage)
   var videoList: XmlNode =
@@ -382,6 +423,8 @@ proc loadEmbtakuChapterData(this: var Downloadercontext) =
   let videoData: string = this.ourClient.getContent(chapter.selStream[chapter.streamIndex])
   inc chapter.streamIndex
   chapter.contentSeq.add TiNode(text: videoData)
+
+# Begin NovelHall
 proc loadNovelHallSearch(this: var DownloaderContext) =
   let 
     content = this.ourClient.getContent("https://www.novelhall.com/index.php?s=so&module=book&keyword=" & this.name.replace(' ', '&'))
@@ -466,6 +509,7 @@ proc loadNovelHallMetadata(this: var DownloaderContext) =
   metadata.description = sanitizeString(introInfo.child("span")[0].innerText)
   var vol = Volume(mdat: metadata, lower: -1, upper: -1)
   this.sections.add vol
+
 const downloaderList: array[5, MethodList] =
   [("embtaku.pro", "video", @[("metadata", loadEmbtakuMetadata), ("parts", loadEmbtakuChapters), ("search", loadEmbtakuSearch), ("prepare", loadEmbtakuHLS), ("content", loadEmbtakuChapterData), ("home", nil)]),
     ("hanime.tv", "video", @[("metadata", nil), ("parts", nil), ("search", nil), ("content", nil), ("home", nil)]),
