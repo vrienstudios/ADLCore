@@ -51,7 +51,7 @@ proc padPKSC7*(data: string): string =
     inc idx
   return outString
   
-proc aes256Decrypt(data, password: string): string =
+proc aes256Decrypt*(data, password: string): string =
   assert len(data) > 0
   assert len(password) > 0
   
@@ -69,7 +69,7 @@ proc aes256Decrypt(data, password: string): string =
   dContext.decrypt(cipher, decryptedText)
   dContext.clear()
   return decryptedText
-proc aes256Decrypt(data, key, iv: string): string =
+proc aes256Decrypt*(data, key, iv: string): string =
   assert key.len == aes256.sizeKey
   assert iv.len == aes256.sizeBlock
   assert data.len > 0

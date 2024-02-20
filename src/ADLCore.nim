@@ -217,23 +217,28 @@ proc loadHAnimeSearch(ctx: var DownloaderContext) =
       tags.add(tag.getStr())
     met.genre = tags
     ctx.sections.add Volume(mdat: met, lower: -1, upper: -1, sResult: true)
-proc loadHAnimeMetadata(ctx: var DownloaderContext) =
-  setPage(ctx, ctx.defaultPage)
-  var
+proc getMetaDataFromNUXT(page: XmlNode): tuple[jDat: JsonNode, meta: MetaData] =
+  var 
     meta: MetaData = MetaData()
     jsonData: string
-  for script in ctx.page.findAll("script"):
+  for script in page.findAll("script"):
     if script.innerText.contains("__NUXT__"):
       jsonData = script.innerText[16..^2]
       break
   var videoData = parseJson(jsonData)["state"]["data"]["video"]
   let jObj = videoData["hentai_video"]
-  meta.name = videoData["hentai_franchise"].getStr()
+  meta.name = jObj["name"].getStr()
+  meta.series = videoData["hentai_franchise"]["title"].getStr()
   meta.description = parseHtml(jObj["description"].getStr()).innerText
   meta.author = jObj["brand"].getStr()
   meta.coverUri = jObj["cover_url"].getStr()
-  meta.uri = "https://www.hanime.tv/" & jObj["slug"].getStr()
-  var vol = Volume(mdat: meta, lower: -1, upper: -1, jDat: videoData)
+  meta.uri = "https://hanime.tv/videos/hentai" & jObj["slug"].getStr()
+  return (videoData, meta)
+proc loadHAnimeMetadata(ctx: var DownloaderContext) =
+  setPage(ctx, ctx.defaultPage)
+  var
+    nuxt = getMetaDataFromNUXT(ctx.page)
+  var vol = Volume(mdat: nuxt.meta, lower: -1, upper: -1, jDat: nuxt.jDat)
   if ctx.globalKey == "":
     ctx.globalKey = ctx.ourClient.getContent("https://hanime.tv/sign.bin")
   ctx.sections.add vol
@@ -242,20 +247,24 @@ proc loadHAnimeChapters(ctx: var DownloaderContext) =
   let 
     seriesData = ctx.section.jDat["hentai_franchise_hentai_videos"].getElems()
   for episode in seriesData:
-    var metaData = MetaData(name: episode["name"].getStr(), uri: "https://" & ctx.baseUri & episode["slug"].getStr())
-    ctx.section.parts.add Chapter(metadata: metaData, key: ctx.globalKey)
+    let 
+      uri = "https://hanime.tv/videos/hentai/" & episode["slug"].getStr()
+      page = parseHtml(ctx.ourClient.getContent(uri))
+    var nuxt = getMetaDataFromNUXT(page)
+    ctx.section.parts.add Chapter(metadata: nuxt.meta, key: ctx.globalKey, jDat: nuxt.jDat)
 proc loadHAnimeRes*(ctx: var Downloadercontext) =
-  var streams: seq[MediaStreamTuple] = @[]
-  assert ctx.chapter.jDat != nil
-  let servers = ctx.chapter.jDat["video_manifest"]["servers"]
+  var 
+    streams: seq[MediaStreamTuple] = @[]
+    chapter = ctx.chapter
+  let servers = chapter.jDat["videos_manifest"]["servers"]
   for res in servers.getElems()[0]["streams"].getElems():
     if res["url"].getStr() == "":
       continue
     streams.add (id: $res["id"].getInt(),
-      resolution: res["width"].getStr() & "x" & res["height"].getStr(),
+      resolution: $res["width"].getInt() & "x" & res["height"].getStr(),
       uri: res["url"].getStr(), language: "english",
       isAudio: false, bandWidth: "unknown")
-  ctx.chapter.mainStream.subStreams = streams
+  chapter.mainStream.subStreams = streams
 proc loadHAnimeContent*(ctx: var DownloaderContext) =
   var 
     chp = ctx.chapter
@@ -511,11 +520,11 @@ proc loadNovelHallMetadata(this: var DownloaderContext) =
   this.sections.add vol
 
 const downloaderList: array[5, MethodList] =
-  [("embtaku.pro", "video", @[("metadata", loadEmbtakuMetadata), ("parts", loadEmbtakuChapters), ("search", loadEmbtakuSearch), ("prepare", loadEmbtakuHLS), ("content", loadEmbtakuChapterData), ("home", nil)]),
-    ("hanime.tv", "video", @[("metadata", nil), ("parts", nil), ("search", nil), ("content", nil), ("home", nil)]),
-    ("www.novelhall.com", "text", @[("metadata", loadNovelHallMetadata), ("parts", loadNovelHallChapters), ("search", loadNovelHallSearch), ("content", loadNovelHallChapter), ("home", nil)]),
-    ("mangakakalot.com", "text", @[("metadata", nil), ("parts", nil), ("search", nil), ("content", nil), ("home", nil)]),
-    ("", "script", @[("metadata", nil), ("parts", nil), ("search", nil), ("content", nil), ("home", nil)])]
+  [("embtaku.pro", "video", @[("metadata", loadEmbtakuMetadata), ("parts", loadEmbtakuChapters), ("search", loadEmbtakuSearch), ("prepare", loadEmbtakuHLS), ("content", loadEmbtakuChapterData)]),
+    ("hanime.tv", "video", @[("metadata", loadHAnimeMetadata), ("parts", loadHAnimeChapters), ("search", loadHAnimeSearch), ("prepare", loadHAnimeRes), ("content", loadHAnimeContent)]),
+    ("www.novelhall.com", "text", @[("metadata", loadNovelHallMetadata), ("parts", loadNovelHallChapters), ("search", loadNovelHallSearch), ("content", loadNovelHallChapter)]),
+    ("mangakakalot.com", "text", @[("metadata", nil), ("parts", nil), ("search", nil), ("content", nil)]),
+    ("", "script", @[("metadata", nil), ("parts", nil), ("search", nil), ("content", nil)])]
 
 #tuple[baseUri, dType: string, procs: seq[tuple[procType: string, thisProc: proc(this: RootObj)]]]
 proc setupDownloader(this: MethodList, downloader: var DownloaderContext) =
