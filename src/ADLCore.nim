@@ -519,6 +519,8 @@ proc loadNovelHallMetadata(this: var DownloaderContext) =
   var vol = Volume(mdat: metadata, lower: -1, upper: -1)
   this.sections.add vol
 
+#proc loadScriptMetadata*(ctx: DownloaderContext)
+
 const downloaderList: array[5, MethodList] =
   [("embtaku.pro", "video", @[("metadata", loadEmbtakuMetadata), ("parts", loadEmbtakuChapters), ("search", loadEmbtakuSearch), ("prepare", loadEmbtakuHLS), ("content", loadEmbtakuChapterData)]),
     ("hanime.tv", "video", @[("metadata", loadHAnimeMetadata), ("parts", loadHAnimeChapters), ("search", loadHAnimeSearch), ("prepare", loadHAnimeRes), ("content", loadHAnimeContent)]),
@@ -543,6 +545,7 @@ proc setupDownloader(this: MethodList, downloader: var DownloaderContext) =
       else:
         continue
   return
+# Management
 proc generateContext*(baseUri, fullUri: string): DownloaderContext =
   for uri in downloaderList:
     if baseUri == uri.baseUri:
@@ -587,6 +590,18 @@ proc setSearch*(ctx: var DownloaderContext, query: string): bool =
     return false
   ctx.name = query
   return true
+# Clears content after access
+iterator walkVideoContent*(ctx: var Downloadercontext): TiNode =
+  # StreamIndex automatically increased on setContent
+  while ctx.chapter.streamIndex < ctx.chapter.selStream.len:
+    discard ctx.setContent()
+    yield ctx.chapter.contentSeq[0]
+    ctx.chapter.contentSeq.delete(0)
+iterator walkNovelContent*(ctx: var DownloaderContext): seq[TiNode] =
+  for i in walkChapters(ctx):
+    discard ctx.setContent()
+    yield ctx.chapter.contentSeq
+    ctx.chapter.contentSeq = @[]
 #let script = GenNewScript(ScanForScriptsInfoTuple("/mnt/General/work/Programming/ADLCore/src/")[0])
 #let mdata = script[0].GetMetaData("https://www.volarenovels.com/novel/physician-not-a-consort")
 #echo mdata.name
