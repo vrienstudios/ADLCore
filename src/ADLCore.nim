@@ -66,6 +66,15 @@ type
     baseUri*: string
     setMetadataP, setSearchP, setPartsP, setContentP, prepareP: proc(this: var DownloaderContext)
 
+exportTo(ADLScript,
+  InfoTuple, Status, NodeKind, LanguageType, MetaData,
+  ImageKind, Image, TiNode, Chapter, MediaStreamTuple,
+  Param, Head, HLSStream, parseManifestInterp, indexStream,
+  indexStreamHead, 
+  processHttpRequest, SeekNode, sanitizeString)
+
+const scriptIncludes = implNimScriptModule(ADLScript)
+
 proc `[]`*(vol: var Volume, idx: int): var Chapter =
   return vol.parts[idx]
 proc `[]`*(ctx: var DownloaderContext, idx: int): Volume =
@@ -185,6 +194,44 @@ proc selectResolution*(this: var DownloaderContext, id: string) =
       vSeq.add(part.values[0].value)
   chapter.selStream = vSeq
 
+# Scripts
+proc processHttpRequest(uri: string, scriptID: int, headers: seq[tuple[key: string, value: string]], mimicBrowser: bool = false): string =
+  if mimicBrowser:
+    var sesh = createSession(Chromium, browserOptions=chromeOptions(args=["--headless", "--user-agent=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/105.0.0.0 Safari/537.36"]), hideDriverConsoleWindow=true)
+    sesh.navigate uri
+    return sesh.pageSource()
+  var reqHeaders: HttpHeaders = newHttpHeaders()
+  for i in headers:
+    reqHeaders.add(i.key, i.value)
+  var tempClient = newHttpClient()
+  tempClient.headers = reqHeaders
+  let request = tempClient.request(url = uri, httpMethod = HttpGet, headers = reqHeaders)
+  case request.status:
+    of "404":
+      return "404"
+    else:
+      return request.body
+proc setScript*(ctx: var DownloaderContext, path: string) =
+  var script: NScript = NScript()
+  let scr = NimScriptPath(path)
+  script.intr = loadScript(scr, scriptIncludes, ["json", "xmltree", "htmlparser", "strutils"])
+  script.headerInfo = readScriptInfoTuple(path)
+  script.intr.invoke(SetID, len(NScripts))
+  ctx.script = script
+proc setMetadataScript*(ctx: var DownloaderContext) =
+  var 
+    meta: MetaData = ctx.script.intr.invoke(GetMetaData, returnType = MetaData)
+    vol: Volume = Volume(mdat: meta, lower: -1, upper: -1)
+  ctx.sections.add vol
+proc setChapters*(ctx: var DownloaderContext) =
+  var metas: MetaData = ctx.script.intr.invoke(GetChapters, ctx.section, returnType = seq[MetaData])
+  for meta in metas:
+    ctx.section.parts.add Chapter(metadata: meta)
+proc setPreparation*(ctx: var DownloaderContext) =
+  let stream = this.script.intr.invoke(GetHLSStream, ctx.chapter, returnType = HLSStream)
+  ctx.chapter.mainStream.stream = (stream, parseSubStream(stream))
+proc setContent*(ctx: var DownloaderContext) =
+  ctx.chapter.contentSeq.add this.script.intr.invoke(GetNodes, ctx.chapter, returnType = seq[TiNode])
 # Begin HAnime
 proc loadHAnimeSearch(ctx: var DownloaderContext) =
   # https://search.htv-services.com/
@@ -545,6 +592,7 @@ proc setupDownloader(this: MethodList, downloader: var DownloaderContext) =
       else:
         continue
   return
+  
 # Management
 proc generateContext*(baseUri, fullUri: string): DownloaderContext =
   for uri in downloaderList:
