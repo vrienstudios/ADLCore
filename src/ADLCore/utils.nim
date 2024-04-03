@@ -135,3 +135,25 @@ proc recursiveNodeSearch*(x: XmlNode, n: XmlNode): XmlNode =
 # Using strings as a workaround of the nnkSym error.
 proc SeekNode*(node: string, desiredNode: string): string =
   return $recursiveNodeSearch(parseHtml(node), parseHtml(desiredNode))
+
+type Site* = ref object of RootObj
+  identifier*: string
+  baseUri*: string
+  uriList: seq[string]
+method `+=`*(site: Site, str: string) =
+  site.uriList.add str
+var siteList*: seq[Site] =
+  @[
+    Site(identifier: "novelhall", baseUri: "www.novelhall.com", uriList: @["www.novelhall.com", "novelhall", "novelhall.com"]),
+    Site(identifier: "hanime", baseUri: "hanime.tv", uriList: @["hanime", "hanime.tv"]),
+    Site(identifier: "embtaku", baseUri: "embtaku.pro", uriList: @["embtaku.pro", "embtaku"]),
+    Site(identifier: "mangakakalot", baseUri: "mangakakalot.com", uriList: @["mangakakalot.com", "mangakakalot"])
+  ]
+proc isIn*(site: Site, str: string): bool =
+  for i in site.uriList:
+    if str != i: continue
+    return true
+proc getSite*(str: string): Site =
+  for site in siteList:
+    if not isIn(site, str): continue
+    return site

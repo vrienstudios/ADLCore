@@ -637,13 +637,11 @@ proc loadNovelHallMetadata(this: var DownloaderContext) =
 #proc loadScriptMetadata*(ctx: DownloaderContext)
 
 const downloaderList: array[5, MethodList] =
-  [("embtaku.pro", "video", @[("metadata", loadEmbtakuMetadata), ("parts", loadEmbtakuChapters), ("search", loadEmbtakuSearch), ("prepare", loadEmbtakuHLS), ("content", loadEmbtakuChapterData)]),
-    ("hanime.tv", "video", @[("metadata", loadHAnimeMetadata), ("parts", loadHAnimeChapters), ("search", loadHAnimeSearch), ("prepare", loadHAnimeRes), ("content", loadHAnimeContent)]),
-    ("www.novelhall.com", "text", @[("metadata", loadNovelHallMetadata), ("parts", loadNovelHallChapters), ("search", loadNovelHallSearch), ("content", loadNovelHallChapter)]),
-    ("mangakakalot.com", "text", @[("metadata", nil), ("parts", nil), ("search", nil), ("content", nil)]),
+  [("embtaku", "video", @[("metadata", loadEmbtakuMetadata), ("parts", loadEmbtakuChapters), ("search", loadEmbtakuSearch), ("prepare", loadEmbtakuHLS), ("content", loadEmbtakuChapterData)]),
+    ("hanime", "video", @[("metadata", loadHAnimeMetadata), ("parts", loadHAnimeChapters), ("search", loadHAnimeSearch), ("prepare", loadHAnimeRes), ("content", loadHAnimeContent)]),
+    ("novelhall", "text", @[("metadata", loadNovelHallMetadata), ("parts", loadNovelHallChapters), ("search", loadNovelHallSearch), ("content", loadNovelHallChapter)]),
+    ("mangakakalot", "text", @[("metadata", nil), ("parts", nil), ("search", nil), ("content", nil)]),
     ("", "script", @[("metadata", nil), ("parts", nil), ("search", nil), ("content", nil)])]
-
-#tuple[baseUri, dType: string, procs: seq[tuple[procType: string, thisProc: proc(this: RootObj)]]]
 proc setupDownloader(this: MethodList, downloader: var DownloaderContext) =
   for meth in this.procs:
     case meth.procType:
@@ -662,20 +660,20 @@ proc setupDownloader(this: MethodList, downloader: var DownloaderContext) =
   return
   
 # Management
-proc generateContext*(baseUri, fullUri: string): DownloaderContext =
+proc generateContext*(site: Site): DownloaderContext =
   for uri in downloaderList:
-    if baseUri == uri.baseUri:
-      var downloader = DownloaderContext(ourClient: newHttpClient(), baseUri: "https://" & baseUri & "/", defaultPage: fullUri)
-      setDefaultHeaders(downloader)
-      uri.setupDownloader(downloader)
-      return downloader
+    if site.baseUri != uri.baseUri: continue
+    var downloader = DownloaderContext(ourClient: newHttpClient(), baseUri: "https://" & site.baseUri & "/", defaultPage: fullUri)
+    setDefaultHeaders(downloader)
+    uri.setupDownloader(downloader)
+    return downloader
   return nil
-proc shiftContext*(ctx: var DownloaderContext, baseUri, fullUri: string) =
-  ctx.baseUri = baseUri
+proc shiftContext*(ctx: var DownloaderContext, site: Site, fullUri: string) =
+  ctx.baseUri = site.baseUri
   ctx.defaultPage = fullUri
   for uri in downloaderList:
-    if baseUri == uri.baseUri:
-      uri.setupDownloader(ctx)
+    if site.baseUri != uri.baseUri: continue
+    uri.setupDownloader(ctx)
 proc setMetadata*(ctx: var DownloaderContext): bool =
   if ctx.setMetadataP == nil:
     return false
