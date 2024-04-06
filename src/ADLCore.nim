@@ -1,7 +1,7 @@
 import nimscripter, nimcrypto
 import EPUB
 import HLSManager
-import std/[os, httpclient, htmlparser, xmltree, strutils, parseutils, base64, json, sequtils]
+import std/[os, uri, httpclient, htmlparser, xmltree, strutils, parseutils, base64, json, sequtils, times]
 import ADLCore/utils
 
 type
@@ -27,7 +27,7 @@ type
     uri: string
     resolution: string
   MethodList* = 
-    tuple[baseUri, dType: string, procs: seq[tuple[procType: string, thisProc: proc(this: var DownloaderContext){.nimcall,gcsafe.}]]]
+    tuple[identifier, dType: string, procs: seq[tuple[procType: string, thisProc: proc(this: var DownloaderContext){.nimcall,gcsafe.}]]]
   NScript* = ref object
     headerInfo*: InfoTuple
     scriptID: int
@@ -65,7 +65,20 @@ type
     currPage*: string
     baseUri*: string
     setMetadataP, setSearchP, setPartsP, setContentP, prepareP: proc(this: var DownloaderContext)
-
+var scriptContextTracker: seq[DownloaderContext] = @[]
+proc processHttpRequest(uri: string, scriptID: int, headers: seq[tuple[key: string, value: string]], mimicBrowser: bool = false): string =
+  var ctx = scriptContextTracker[scriptID]
+  var reqHeaders: HttpHeaders = newHttpHeaders()
+  for i in headers:
+    reqHeaders.add(i.key, i.value)
+  let req = ctx.ourClient.request(uri, HttpGet, "", reqHeaders)
+  return req.body
+proc parseManifestInterp(manifest: string, baseUri: string = ""): HLSStream =
+  return ParseManifest(manifest.split('\n'), baseUri)
+proc indexStream(this: HLSStream, header: string): seq[Head] =
+  return this[header]
+proc indexStreamHead(this: Head, key: string): string =
+  return this[key]
 exportTo(ADLScript,
   InfoTuple, Status, NodeKind, LanguageType, MetaData,
   ImageKind, Image, TiNode, Chapter, MediaStreamTuple,
@@ -131,7 +144,6 @@ proc parseInfoTuple(file: string): InfoTuple =
     else: break
   return infoTuple
 proc buildCoverAndDefaultPage*(epub3: Epub3, novelObj: DownloaderContext) =
-  stdout.styledWriteLine(fgWhite, "Downloading Cover")
   # section[0] should contain all metadata information about the novel including num of chapters.
   let meta = novelObj.sections[0].mdat
   var 
@@ -151,7 +163,6 @@ proc buildCoverAndDefaultPage*(epub3: Epub3, novelObj: DownloaderContext) =
     epub3.add img
     nodes.add TiNode(kind: NodeKind.ximage, image: img, customPath: "../../cover.jpeg")
   except:
-    stdout.styledWriteLine(fgRed, "Could not get novel cover, does it exist?")
     novelObj.ourClient.headers = novelObj.defaultHeaders
   nodes.add TiNode(kind: NodeKind.paragraph, text: "Title: " & meta.name)
   nodes.add TiNode(kind: NodeKind.paragraph, text: "Author: " & meta.author)
@@ -263,43 +274,27 @@ proc selectResolution*(this: var DownloaderContext, id: string) =
   chapter.selStream = vSeq
 
 # Scripts
-proc processHttpRequest(uri: string, scriptID: int, headers: seq[tuple[key: string, value: string]], mimicBrowser: bool = false): string =
-  if mimicBrowser:
-    var sesh = createSession(Chromium, browserOptions=chromeOptions(args=["--headless", "--user-agent=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/105.0.0.0 Safari/537.36"]), hideDriverConsoleWindow=true)
-    sesh.navigate uri
-    return sesh.pageSource()
-  var reqHeaders: HttpHeaders = newHttpHeaders()
-  for i in headers:
-    reqHeaders.add(i.key, i.value)
-  var tempClient = newHttpClient()
-  tempClient.headers = reqHeaders
-  let request = tempClient.request(url = uri, httpMethod = HttpGet, headers = reqHeaders)
-  case request.status:
-    of "404":
-      return "404"
-    else:
-      return request.body
 proc setScript*(ctx: var DownloaderContext, path: string) =
   var script: NScript = NScript()
   let scr = NimScriptPath(path)
   script.intr = loadScript(scr, scriptIncludes, ["json", "xmltree", "htmlparser", "strutils"])
   script.headerInfo = readScriptInfoTuple(path)
-  script.intr.invoke(SetID, len(NScripts))
+  script.intr.invoke(SetID, len(scriptContextTracker))
   ctx.script = script
-proc setMetadataScript*(ctx: var DownloaderContext) =
+proc setScriptMetadataScript*(ctx: var DownloaderContext) =
   var 
     meta: MetaData = ctx.script.intr.invoke(GetMetaData, returnType = MetaData)
     vol: Volume = Volume(mdat: meta, lower: -1, upper: -1)
   ctx.sections.add vol
-proc setChapters*(ctx: var DownloaderContext) =
-  var metas: MetaData = ctx.script.intr.invoke(GetChapters, ctx.section, returnType = seq[MetaData])
+proc setScriptChapters*(ctx: var DownloaderContext) =
+  var metas: seq[MetaData] = ctx.script.intr.invoke(GetChapters, ctx.section, returnType = seq[MetaData])
   for meta in metas:
     ctx.section.parts.add Chapter(metadata: meta)
-proc setPreparation*(ctx: var DownloaderContext) =
-  let stream = this.script.intr.invoke(GetHLSStream, ctx.chapter, returnType = HLSStream)
-  ctx.chapter.mainStream.stream = (stream, parseSubStream(stream))
-proc setContent*(ctx: var DownloaderContext) =
-  ctx.chapter.contentSeq.add this.script.intr.invoke(GetNodes, ctx.chapter, returnType = seq[TiNode])
+proc setScriptPreparation*(ctx: var DownloaderContext) =
+  let stream = ctx.script.intr.invoke(GetHLSStream, ctx.chapter, returnType = HLSStream)
+  ctx.chapter.mainStream = (stream, parseSubStream(stream))
+proc setScriptContent*(ctx: var DownloaderContext) =
+  ctx.chapter.contentSeq.add ctx.script.intr.invoke(GetNodes, ctx.chapter, returnType = seq[TiNode])
 # Begin HAnime
 proc loadHAnimeSearch(ctx: var DownloaderContext) =
   # https://search.htv-services.com/
@@ -636,13 +631,13 @@ proc loadNovelHallMetadata(this: var DownloaderContext) =
 
 #proc loadScriptMetadata*(ctx: DownloaderContext)
 
-const downloaderList: array[5, MethodList] =
-  [("embtaku", "video", @[("metadata", loadEmbtakuMetadata), ("parts", loadEmbtakuChapters), ("search", loadEmbtakuSearch), ("prepare", loadEmbtakuHLS), ("content", loadEmbtakuChapterData)]),
+var downloaderList: seq[MethodList] =
+  @[("embtaku", "video", @[("metadata", loadEmbtakuMetadata), ("parts", loadEmbtakuChapters), ("search", loadEmbtakuSearch), ("prepare", loadEmbtakuHLS), ("content", loadEmbtakuChapterData)]),
     ("hanime", "video", @[("metadata", loadHAnimeMetadata), ("parts", loadHAnimeChapters), ("search", loadHAnimeSearch), ("prepare", loadHAnimeRes), ("content", loadHAnimeContent)]),
     ("novelhall", "text", @[("metadata", loadNovelHallMetadata), ("parts", loadNovelHallChapters), ("search", loadNovelHallSearch), ("content", loadNovelHallChapter)]),
     ("mangakakalot", "text", @[("metadata", nil), ("parts", nil), ("search", nil), ("content", nil)]),
     ("", "script", @[("metadata", nil), ("parts", nil), ("search", nil), ("content", nil)])]
-proc setupDownloader(this: MethodList, downloader: var DownloaderContext) =
+proc setupDownloader(downloader: var Downloadercontext, this: MethodList) =
   for meth in this.procs:
     case meth.procType:
       of "metadata":
@@ -657,23 +652,32 @@ proc setupDownloader(this: MethodList, downloader: var DownloaderContext) =
         downloader.prepareP = meth.thisProc
       else:
         continue
-  return
-  
+proc isDownloader*(uriHost: string): bool =
+  for site in siteList:
+    if not isIn(site, uriHost): continue
+    return true
+proc isUrl*(uriHost: string): bool =
+  let uri = parseUri(uriHost)
+  return (uri.hostname != "")
 # Management
-proc generateContext*(site: Site): DownloaderContext =
-  for uri in downloaderList:
-    if site.baseUri != uri.baseUri: continue
-    var downloader = DownloaderContext(ourClient: newHttpClient(), baseUri: "https://" & site.baseUri & "/", defaultPage: fullUri)
-    setDefaultHeaders(downloader)
-    uri.setupDownloader(downloader)
-    return downloader
-  return nil
+proc generateContext*(str: string): DownloaderContext =
+  let pUri = parseUri(str)
+  let site: Site =
+    if pUri.hostname == "": getSite(str)
+    else: getSite(pUri.hostname)
+  var context: DownloaderContext
+  for downloader in downloaderList:
+    if downloader.identifier != site.identifier: continue
+    context = DownloaderContext(ourClient: newHttpClient(), baseUri: "https://" & site.baseUri & "/", defaultPage: $pUri)
+    context.setupDownloader(downloader)
+    context.setDefaultHeaders()
+    return context
 proc shiftContext*(ctx: var DownloaderContext, site: Site, fullUri: string) =
   ctx.baseUri = site.baseUri
   ctx.defaultPage = fullUri
   for uri in downloaderList:
-    if site.baseUri != uri.baseUri: continue
-    uri.setupDownloader(ctx)
+    if site.identifier != uri.identifier: continue
+    ctx.setupDownloader(uri)
 proc setMetadata*(ctx: var DownloaderContext): bool =
   if ctx.setMetadataP == nil:
     return false
