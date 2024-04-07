@@ -1,7 +1,8 @@
 import ADLCore/[utils, hls, epub, context]
 import ADLCore/sites/[embtaku, hanime, novelhall]
 
-export ADLCore/context
+export context
+export epub
 
 
 #let script = GenNewScript(ScanForScriptsInfoTuple("/mnt/General/work/Programming/ADLCore/src/")[0])

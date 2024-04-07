@@ -37,7 +37,7 @@ proc setupEpub*(mdataObj: MetaData): Epub3 =
   let appDir = getAppDir()
   let potentialPath = appDir / mdataObj.name & ".epub"
   if fileExists(potentialPath):
-    # Check if DIR exists if file also exists.
+  # Check if DIR exists if file also exists.
     if dirExists(appDir / mdataObj.name):
       echo "loading from dir instead of file"
       epub = LoadEpubFromDir(appDir / mdataObj.name)
@@ -68,5 +68,8 @@ proc setupEpub*(mdataObj: MetaData): Epub3 =
     epub.metaData.add EpubMetaData(metaType: MetaType.meta, attrs: {"property": "dcterms:modified"}.toXmlAttributes(), text: $getTime())
     # Publisher (default to us)
     epub.metaData.add EpubMetaData(metaType: MetaType.dc, name: "publisher", text: "anime-dl")
-  # Build in memory -- use a different method for epub resumation.
+    # Build in memory -- use a different method for epub resumation.
   return epub
+proc `+=`(epub: var Epub3, name: string, nodes: seq[TiNode]) =
+  if fileExists("./" / epub.path / "OPF" / "Pages" / name & ".xhtml"): return
+  epub.add(Page(name: name, nodes: nodes))
