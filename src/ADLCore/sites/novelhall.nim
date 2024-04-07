@@ -2,7 +2,7 @@ import ../context
 # Begin NovelHall
 proc loadNovelHallSearch(this: var DownloaderContext) =
   let 
-    content = this.ourClient.getContent("https://www.novelhall.com/index.php?s=so&module=book&keyword=" & this.name.replace(' ', '&'))
+    content = this.httpGet("https://www.novelhall.com/index.php?s=so&module=book&keyword=" & this.name.replace(' ', '&'))
     page: XmlNode = parseHtml(content)
   for node in page.findAll("section"):
     if node.attr("id") != "main":
@@ -19,7 +19,7 @@ proc loadNovelHallSearch(this: var DownloaderContext) =
 iterator novelhallGetChapter(this: var DownloaderContext, l, h: int): Chapter =
   setPage(this, this.defaultPage)
   let chapterList: XmlNode =
-    recursiveNodeSearch(this.page, parseHtml("<div class=\"book-catalog inner mt20\">"))
+    recursiveNodeSearch(this.page, parseHtml("<div class=\"book-catalog inner mt20\">"))[7]
   var
     idx: int = 
       if h < 0: len(chapterList)
@@ -31,7 +31,7 @@ iterator novelhallGetChapter(this: var DownloaderContext, l, h: int): Chapter =
   while lower < idx and nodeTrack < len(chapterList):
     let currentNode = chapterList[nodeTrack]
     inc nodeTrack
-    if currentNode.kind != xnElement or currentNode.tag != "ul":
+    if currentNode.kind != xnElement or currentNode.tag != "li":
       continue
     let ourChild = currentNode.child("a")
     yield Chapter(metadata: MetaData(name: sanitizeString(ourChild.innerText), uri: "https://www.novelhall.com" & ourChild.attr("href")))
@@ -58,11 +58,11 @@ proc getNovelHallChapterDataFromPage(page: XmlNode): seq[TiNode] =
   return nodes
 proc loadAllNovelHallChapterData(this: var DownloaderContext) =
   for chapter in this.section.parts:
-    let page = parseHtml(this.ourClient.getContent(chapter.metadata.uri))
+    let page = parseHtml(this.httpGet(chapter.metadata.uri))
     chapter.contentSeq = getNovelHallChapterDataFromPage(page)
 proc loadNovelHallChapter(this: var DownloaderContext) =
   var chapter = this.chapter
-  let pageNode: XmlNode = parseHtml(this.ourClient.getContent(chapter.metadata.uri))
+  let pageNode: XmlNode = parseHtml(this.httpGet(chapter.metadata.uri))
   chapter.contentSeq = getNovelHallChapterDataFromPage(pageNode)
 proc loadNovelHallMetadata(this: var DownloaderContext) =
   setPage(this, this.defaultPage)

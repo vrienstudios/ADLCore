@@ -97,8 +97,6 @@ proc sanitizeString*(str: string): string =
   return newStr
 
 proc attrEquivalenceCheck*(a, b: XmlNode): bool =
-  if a.attrs == nil and b.attrs == nil:
-    return true
   if a.attrs == nil or b.attrs == nil:
     return false
   if a.attrs.len != b.attrs.len:
@@ -111,12 +109,8 @@ proc attrEquivalenceCheck*(a, b: XmlNode): bool =
   return true
 proc checkEquivalence*(a, b: XmlNode): bool =
   if a.kind == b.kind:
-    if b.attrs == nil:
+    if attrEquivalenceCheck(a, b) and a.tag == b.tag:
       return true
-    if a.kind == xnElement:
-      # Text comparison can happen somewhere else
-      if attrEquivalenceCheck(a, b) and a.tag == b.tag:
-        return true
   return false
 proc recursiveNodeSearch*(x: XmlNode, n: XmlNode): XmlNode =
   if x == nil:
@@ -124,8 +118,6 @@ proc recursiveNodeSearch*(x: XmlNode, n: XmlNode): XmlNode =
   if $x == $n or checkEquivalence(x, n):
     return x
   for item in x.items:
-    if $item == $n or checkEquivalence(item, n):
-      return item
     if item.kind != xnElement:
       continue
     let ni = recursiveNodeSearch(item, n)

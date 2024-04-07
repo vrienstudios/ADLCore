@@ -4,7 +4,6 @@ import nimcrypto
 import EPUB
 import ./utils
 import ./hls
-
 export TiNode, sequtils, os, xmltree, strutils, httpclient, htmlparser, uri, parseutils, json, utils, hls, base64, nimcrypto
 
 type
@@ -107,19 +106,22 @@ proc setupDownloader*(downloader: var Downloadercontext, this: MethodList) =
         downloader.prepareP = meth.thisProc
       else:
         continue
+proc setDefaultHeaders*(this: var DownloaderContext) =
+  if this.defaultHeaders == nil:
+    this.defaultHeaders = newHttpHeaders({
+      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:101.0) Gecko/20100101 Firefox/101.0",
+      "Referer": this.baseUri,
+      "x-requested-with": "XMLHttpRequest",
+      "Accept": "*/*",
+      "Accept-Encoding": "identity",
+    })
+  this.ourClient.headers = this.defaultHeaders
 proc setPage*(this: var DownloaderContext, page: string) =
   if this.currPage == page:
     return
+  setDefaultHeaders(this)
   this.page = parseHtml(this.ourClient.getContent(page))
   this.currPage = page
-proc setDefaultHeaders*(this: var DownloaderContext) =
-  this.ourClient.headers = newHttpHeaders({
-    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:101.0) Gecko/20100101 Firefox/101.0",
-    "Referer": this.baseUri,
-    "x-requested-with": "XMLHttpRequest",
-    "Accept": "*/*",
-    "Accept-Encoding": "identity",
-  })
 iterator walkSections*(ctx: var DownloaderContext): Volume =
   ctx.index = 0
   while ctx.index < ctx.sections.len:
@@ -162,6 +164,8 @@ proc processHttpRequest*(uri: string, scriptID: int, headers: seq[tuple[key: str
     reqHeaders.add(i.key, i.value)
   let req = ctx.ourClient.request(uri, HttpGet, "", reqHeaders)
   return req.body
+proc httpGet*(this: var DownloaderContext, str: Uri | string): string =
+  return this.ourClient.getContent(str)
 proc parseManifestInterp*(manifest: string, baseUri: string = ""): HLSStream =
   return ParseManifest(manifest.split('\n'), baseUri)
 proc indexStream*(this: HLSStream, header: string): seq[Head] =
@@ -244,7 +248,8 @@ proc generateContext*(str: string): DownloaderContext =
   var context: DownloaderContext
   for downloader in downloaderList:
     if downloader.identifier != site.identifier: continue
-    context = DownloaderContext(ourClient: newHttpClient(), baseUri: "https://" & site.baseUri & "/", defaultPage: $pUri)
+    var http = newHttpClient()
+    context = DownloaderContext(ourClient: http, baseUri: "https://" & site.baseUri & "/", defaultPage: $pUri)
     context.setupDownloader(downloader)
     context.setDefaultHeaders()
     return context
