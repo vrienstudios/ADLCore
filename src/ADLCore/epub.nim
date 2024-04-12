@@ -70,6 +70,7 @@ proc setupEpub*(mdataObj: MetaData): Epub3 =
     epub.metaData.add EpubMetaData(metaType: MetaType.dc, name: "publisher", text: "anime-dl")
     # Build in memory -- use a different method for epub resumation.
   return epub
-proc `+=`(epub: var Epub3, name: string, nodes: seq[TiNode]) =
-  if fileExists("./" / epub.path / "OPF" / "Pages" / name & ".xhtml"): return
-  epub.add(Page(name: name, nodes: nodes))
+proc `+=`*(epub: var Epub3, tup: tuple[name: string, nodes: seq[TiNode]]) =
+  if fileExists("./" / epub.path / "OPF" / "Pages" / tup.name & ".xhtml"): return
+  assert tup.nodes.len != 0
+  epub.add(Page(name: tup.name, nodes: tup.nodes))

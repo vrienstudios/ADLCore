@@ -295,9 +295,7 @@ iterator walkVideoContent*(ctx: var Downloadercontext): TiNode =
   while ctx.chapter.streamIndex < ctx.chapter.selStream.len:
     discard ctx.setContent()
     yield ctx.chapter.contentSeq[0]
-    ctx.chapter.contentSeq.delete(0)
 iterator walkNovelContent*(ctx: var DownloaderContext): seq[TiNode] =
   for i in walkChapters(ctx):
     discard ctx.setContent()
     yield ctx.chapter.contentSeq
-    ctx.chapter.contentSeq = @[]
