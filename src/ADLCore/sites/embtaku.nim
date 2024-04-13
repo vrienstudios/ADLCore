@@ -41,8 +41,9 @@ proc loadEmbtakuHLS(ctx: var DownloaderContext) =
       bodyKey = videocontent.attr("class").split('-')[1]
       break
   assert bodyKey != ""
-  var videoKey: string
-  var wrapperIV: string
+  var 
+    videoKey: string
+    wrapperIV: string
   for videocontent in ctx.page.findAll("div"):
     if(videocontent.attr("class").contains("wrapper")):
       wrapperIV = videocontent.attr("class").split('-')[1]
@@ -76,8 +77,9 @@ proc loadEmbtakuHLS(ctx: var DownloaderContext) =
   ectx.encrypt(plainText, encText)
   ectx.clear()
   # Probably shouldn't have made this of a set size, but it should be within this length.
-  var pText: seq[byte] = @(encText.toOpenArrayByte(0, encText.len - aes256.sizeBlock - 1))
-  var uriArgs: string
+  var 
+    pText: seq[byte] = @(encText.toOpenArrayByte(0, encText.len - aes256.sizeBlock - 1))
+    uriArgs: string
   for strings in bodyUri[1..(len(bodyUri) - 2)]:
     uriArgs.add("&" & strings)
   # Create the final url to request from.
@@ -90,8 +92,9 @@ proc loadEmbtakuHLS(ctx: var DownloaderContext) =
       "Accept-Encoding": "identity",
   })
   let data = ctx.ourClient.getContent(mainReqUri)
-  var json = parseJSon(data)
-  var jData = json["data"].getStr().decode()
+  var 
+    json = parseJSon(data)
+    jData = json["data"].getStr().decode()
   # Load and decrypt the json response
   dctx.init(videoKey, wrapperIV)
   var decVideoData: string = newString(len(jData))
