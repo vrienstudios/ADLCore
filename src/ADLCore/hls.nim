@@ -18,6 +18,7 @@ proc parseSubStream*(hlsBase: HLSStream): seq[MediaStreamTuple] =
           of "URI":
             uri = param.value
           else: discard
+      if id == "": id = $index
       medStream.add((id: id, resolution: "", uri: uri, language: language, isAudio: true, bandWidth: ""))
     elif segment.header == "#EXT-X-STREAM-INF:":
       var bandwidth: string
@@ -31,6 +32,7 @@ proc parseSubStream*(hlsBase: HLSStream): seq[MediaStreamTuple] =
           of "AUDIO": id = param.value
           else: discard
       uri = hlsBase.parts[index + 1]["URI"]
+      if id == "": id = $index
       medStream.add((id: id, resolution: resolution, uri: uri, language: "", isAudio: false, bandWidth: bandwidth))
     inc index
   return medStream
