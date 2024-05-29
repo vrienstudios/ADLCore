@@ -19,9 +19,10 @@ task dbg, "Build ADLCore for debugging":
 # Dependencies
 
 requires "nim >= 1.6.6"
-requires "halonium == 0.2.6"
-requires "EPUB == 0.3.0"
-requires "HLSManager"
+requires "halonium"
+requires "https://github.com/ShujianDou/nim-epub"
+requires "https://github.com/ShujianDou/nim-HLSManager"
 requires "nimcrypto"
 requires "nimscripter == 1.1.1"
 requires "https://github.com/vrienstudios/zippy"
+requires "checksums"
