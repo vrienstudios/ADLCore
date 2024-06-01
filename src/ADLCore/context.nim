@@ -300,3 +300,50 @@ iterator walkNovelContent*(ctx: var DownloaderContext): seq[TiNode] =
   for i in walkChapters(ctx):
     discard ctx.setContent()
     yield ctx.chapter.contentSeq
+proc seqify*(chap: Chapter): seq[string] =
+  var stringSeq: seq[string] = @[]
+proc seqify*(vol: Volume): seq[string] =
+  var stringSeq: seq[string] = @[]
+  stringSeq.add "Meta: "
+  stringSeq.add "\tName: " & vol.mdat.name
+  stringSeq.add "\tSeries: " & vol.mdat.series
+  stringSeq.add "\tAuthor: " & vol.mdat.author
+  stringSeq.add "\tUri: " & vol.mdat.uri
+  stringSeq.add "\tCover: " & vol.mdat.coverUri
+  stringSeq.add "baseUri: " & vol.baseUri
+  stringSeq.add "U: $# | L: $#" % [$vol.upper, $vol.lower]
+  stringSeq.add "SearchResult?: " & $vol.sResult
+  stringSeq.add "cIndex: " & $vol.index
+  stringSeq.add "Chapter Len: " & $vol.parts.len
+  return stringSeq
+proc `$`*(ctx: DownloaderContext): string =
+  var mString: seq[string] = @[]
+  mString.add "Name: " & ctx.name
+  mString.add "path: " & ctx.downloadPath
+  let isScript = ctx.script != nil
+  mString.add "isScript: " & $isScript
+  if isScript:
+    mString.add "\tName: " & ctx.script.headerInfo.name
+    mString.add "\tCover: " & ctx.script.headerInfo.cover
+    mString.add "\tType: " & ctx.script.headerInfo.scraperType
+    mString.add "\tVersion: " & ctx.script.headerInfo.version
+    mString.add "\tPrj Uri: " & ctx.script.headerInfo.projectUri
+    mString.add "\tSite Uri: " & ctx.script.headerInfo.siteUri
+    mString.add "\tPath: " & ctx.script.headerInfo.scriptPath
+    mString.add "\tID: " & $ctx.script.scriptID
+  mString.add "U: $# | L: $#" % [$ctx.upper, $ctx.lower]
+  mString.add "current index: " & $ctx.index
+  mString.add "Section Len: " & $ctx.sections.len
+  for vol in ctx.sections:
+    mString.add "\t" & vol.mdat.name
+    let volSeq = seqify(vol)
+    for str in volSeq:
+      mString.add "\t" & str
+  mString.add "DHead: " & $ctx.defaultHeaders
+  mString.add "DPage: " & ctx.defaultPage
+  mString.add "CPage: " & ctx.currPage
+  mString.add "bUri: " & ctx.baseUri
+  var cString: string = ""
+  for str in mString:
+    cString.add str & "\n"
+  return cString
