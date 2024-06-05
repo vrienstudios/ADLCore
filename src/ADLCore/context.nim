@@ -12,6 +12,7 @@ type
   LanguageType* = enum
     original, translated, machine, mix, unknown
   MetaData* = ref object of RootObj
+    ## Object used for specifying identifying or useful information about the piece of media.
     name*: string
     series*: string
     author*: string
@@ -24,6 +25,7 @@ type
     statusType*: Status
     coverUri*: string
   Chapter* = ref object of RootObj
+    ## An Object, which holds data for a specific chapter or video.
     metadata*: MetaData
     streamIndex*: int
     selStream*: seq[string]
@@ -32,6 +34,7 @@ type
     mainStream*: StreamTuple
     contentSeq*: seq[TiNode]
   Volume* = ref object of RootObj
+    ## An object that holds a sequence of parts for a novel or series.
     mdat*: MetaData
     baseUri*: string
     jDat*: JsonNode
@@ -66,29 +69,36 @@ type
     scriptID: int
     intr: Option[Interpreter]
 method `+=`*(site: Site, str: string) =
+  ## Add strings to a Site object.
   site.uriList.add str
 var 
   siteList*: seq[Site] = @[]
   downloaderList*: seq[MethodList] = @[("", "script", @[("metadata", nil), ("parts", nil), ("search", nil), ("content", nil)])]
 proc isIn*(site: Site, str: string): bool =
+  ## Check if a site url is within the Site object.
   for i in site.uriList:
     if str != i: continue
     return true
 proc getSite*(str: string): Site =
+  ## Get the Site object based upon a site url.
   for site in siteList:
     if not isIn(site, str): continue
     return site
 proc `[]`*(vol: var Volume, idx: int): var Chapter =
+  ## Indexor to grab idx Chapter from a Volume.
   return vol.parts[idx]
 proc `[]`*(ctx: var DownloaderContext, idx: int): Volume =
+  ## Grab idx Volume from DownloaderContext
   return ctx.sections[idx]
 proc `[]`*(ctx: var DownloaderContext, x, y: int): Chapter =
   return ctx.sections[x].parts[y]
 proc isNil*(ctx: DownloaderContext): bool =
     return (ctx.setMetadataP == nil or ctx.setSearchP == nil or ctx.setPartsP == nil or ctx.setContentP == nil)
 proc section*(ctx: var DownloaderContext): Volume =
+  ## Get currently active Volume from the context.
   return ctx.sections[ctx.index]
 proc chapter*(ctx: var DownloaderContext): Chapter =
+  ## Get currently active Chapter from the active Volume in DownloaderContext
   var vol = ctx.sections[ctx.index]
   return vol[vol.index]
 proc setupDownloader*(downloader: var Downloadercontext, this: MethodList) =
@@ -129,6 +139,7 @@ iterator walkSections*(ctx: var DownloaderContext): Volume =
     inc ctx.index
   ctx.index = 0
 iterator walkChapters*(ctx: var DownloaderContext): Chapter =
+  ## Walks Chapters from the currently active Volume
   ctx.section.index = 0
   while ctx.section.index < ctx.section.parts.len:
     yield ctx.chapter
@@ -202,6 +213,7 @@ proc parseInfoTuple(file: string): InfoTuple =
           infoTuple.siteUri = value
     else: break
   return infoTuple
+
 # Author: @Tsu
 proc readScriptInfoTuple*(path: string): InfoTuple =
   var infoTuple = parseInfoTuple(readFile(path))
@@ -218,6 +230,7 @@ const scriptIncludes = implNimScriptModule(ADLScript)
 
 # Scripts
 proc setScript*(ctx: var DownloaderContext, path: string) =
+  ## Loads a script from Path into the DownloaderContext
   var script: NScript = NScript()
   let scr = NimScriptPath(path)
   script.intr = loadScript(scr, scriptIncludes, ["json", "xmltree", "htmlparser", "strutils"])
@@ -291,12 +304,14 @@ proc setSearch*(ctx: var DownloaderContext, query: string): bool =
   return ctx.setSearch()
 # Clears content after access
 iterator walkVideoContent*(ctx: var Downloadercontext): TiNode =
-  # StreamIndex automatically increased on setContent
+  ## Returns video content as a string within the TiNode sequentially
+  ## Note: StreamIndex automatically increased on setContent
   while ctx.chapter.streamIndex < ctx.chapter.selStream.len:
     discard ctx.setContent()
     yield ctx.chapter.contentSeq[0]
     ctx.chapter.contentSeq = @[]
 iterator walkNovelContent*(ctx: var DownloaderContext): seq[TiNode] =
+  ## Returns seq of TiNodes for a chapter every iteration.
   for i in walkChapters(ctx):
     discard ctx.setContent()
     yield ctx.chapter.contentSeq

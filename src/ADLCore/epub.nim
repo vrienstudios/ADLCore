@@ -5,7 +5,8 @@ import EPUB
 export EPUB
 
 proc buildCoverAndDefaultPage*(novelObj: var DownloaderContext, epub3: Epub3) =
-  # section[0] should contain all metadata information about the novel including num of chapters.
+  ## Adds the cover and a default page with information about the novel
+  # section[0] should contain all metadata information about the novel including num of chapters for now.
   let meta = novelObj.sections[0].mdat
   var 
     nodes: seq[TiNode] = @[]
@@ -33,6 +34,7 @@ proc buildCoverAndDefaultPage*(novelObj: var DownloaderContext, epub3: Epub3) =
   nodes.add TiNode(kind: NodeKind.paragraph, text: "Number of pages: " & $novelObj.sections[0].parts.len)
   epub3.add Page(name: "info", nodes: nodes)
 proc setupEpub*(mdataObj: MetaData): Epub3 =
+  ## Sets up an EPUB, and opens the original, if it still exists.
   var epub: Epub3
   let appDir = getAppDir()
   let potentialPath = appDir / mdataObj.name & ".epub"
