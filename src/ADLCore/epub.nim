@@ -76,3 +76,7 @@ proc `+=`*(epub: var Epub3, tup: tuple[name: string, nodes: seq[TiNode]]) =
   if fileExists("./" / epub.path / "OPF" / "Pages" / tup.name & ".xhtml"): return
   assert tup.nodes.len != 0
   epub.add(Page(name: tup.name, nodes: tup.nodes))
+proc isIn*(epub: var Epub3, title: string): bool =
+  for i in epub.navigation:
+    if title == i.text: return true
+  return false
