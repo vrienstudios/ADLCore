@@ -280,7 +280,8 @@ proc setMetadata*(ctx: var DownloaderContext): bool =
 proc setSearch*(ctx: var DownloaderContext): bool =
   if ctx.setSearchP == nil:
     return false
-  ctx.setSearchP(ctx)
+  {.cast(gcsafe).}:
+    ctx.setSearchP(ctx)
   return true
 proc setParts*(ctx: var DownloaderContext): bool =
   if ctx.setPartsP == nil:
@@ -301,7 +302,8 @@ proc setSearch*(ctx: var DownloaderContext, query: string): bool =
   if ctx.setSearchP == nil:
     return false
   ctx.name = query
-  return ctx.setSearch()
+  {.cast(gcsafe).}:
+    return ctx.setSearch()
 # Clears content after access
 iterator walkVideoContent*(ctx: var Downloadercontext): TiNode =
   ## Returns video content as a string within the TiNode sequentially
