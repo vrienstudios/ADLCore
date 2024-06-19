@@ -319,6 +319,14 @@ iterator walkNovelContent*(ctx: var DownloaderContext): seq[TiNode] =
     yield ctx.chapter.contentSeq
 proc seqify*(chap: Chapter): seq[string] =
   var stringSeq: seq[string] = @[]
+  stringSeq.add chap.metaData.name
+  stringSeq.add "uri " & chap.metaData.uri
+  for i in chap.contentSeq:
+    stringSeq.add "\t" & $i
+proc `$`*(chp: Chapter): string
+  var str: string = ""
+  for n in seqify(chp):
+    str += n & "\n"
 proc seqify*(vol: Volume): seq[string] =
   var stringSeq: seq[string] = @[]
   stringSeq.add "Meta: "
