@@ -77,6 +77,6 @@ proc `+=`*(epub: var Epub3, tup: tuple[name: string, nodes: seq[TiNode]]) =
   assert tup.nodes.len != 0
   epub.add(Page(name: tup.name, nodes: tup.nodes))
 proc isIn*(epub: var Epub3, title: string): bool =
-  for i in epub.navigation:
+  for i in epub.navigation.nodes:
     if title == i.text: return true
   return false

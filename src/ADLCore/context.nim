@@ -323,10 +323,10 @@ proc seqify*(chap: Chapter): seq[string] =
   stringSeq.add "uri " & chap.metaData.uri
   for i in chap.contentSeq:
     stringSeq.add "\t" & $i
-proc `$`*(chp: Chapter): string
+proc `$`*(chp: Chapter): string =
   var str: string = ""
   for n in seqify(chp):
-    str += n & "\n"
+    str = str & n & "\n"
 proc seqify*(vol: Volume): seq[string] =
   var stringSeq: seq[string] = @[]
   stringSeq.add "Meta: "

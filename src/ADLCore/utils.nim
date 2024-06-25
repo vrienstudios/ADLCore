@@ -124,6 +124,17 @@ proc recursiveNodeSearch*(x: XmlNode, n: XmlNode): XmlNode =
     if ni != nil:
       return ni
   return nil
+proc recursiveTagSearch*(x: XmlNode, n: string): XmlNode =
+  var 
+    idx: int = 0
+  while idx < x.len:
+    if x[idx].tag == n: 
+      return x[idx]
+    elif x[idx].len > 0:
+      var node = recursiveTagSearch(x[idx], n)
+      if node != nil: return node
+    inc idx
+  return nil
 # Using strings as a workaround of the nnkSym error.
 proc SeekNode*(node: string, desiredNode: string): string =
   return $recursiveNodeSearch(parseHtml(node), parseHtml(desiredNode))
