@@ -235,7 +235,7 @@ proc setScript*(ctx: var DownloaderContext, path: string) =
   let scr = NimScriptPath(path)
   script.intr = loadScript(scr, scriptIncludes, ["json", "xmltree", "htmlparser", "strutils"])
   script.headerInfo = readScriptInfoTuple(path)
-  script.intr.invoke(SetID, len(scriptContextTracker))
+  discard script.intr.invoke(SetID, len(scriptContextTracker))
   ctx.script = script
 proc setScriptMetadataScript*(ctx: var DownloaderContext) =
   var 
