@@ -58,7 +58,6 @@ proc setupEpub*(mdataObj: MetaData): Epub3 =
     epub.beginExport()
     return epub
   epub = CreateNewEpub(mdataObj.name, appDir / mdataObj.name)
-  epub.beginExport() # Export while creating
   block addMeta:
     # Title
     epub.metaData.add EpubMetaData(metaType: MetaType.dc, name: "title", attrs: {"id": "title"}.toXmlAttributes(), text: mdataObj.name)
@@ -71,6 +70,7 @@ proc setupEpub*(mdataObj: MetaData): Epub3 =
     # Publisher (default to us)
     epub.metaData.add EpubMetaData(metaType: MetaType.dc, name: "publisher", text: "anime-dl")
     # Build in memory -- use a different method for epub resumation.
+  epub.beginExport() # Export while creating
   return epub
 proc `+=`*(epub: var Epub3, tup: tuple[name: string, nodes: seq[TiNode]]) =
   if fileExists("./" / epub.path / "OPF" / "Pages" / tup.name & ".xhtml"): return
