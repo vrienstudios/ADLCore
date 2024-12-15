@@ -63,7 +63,7 @@ type
     identifier*: string
     baseUri*: string
     uriList*: seq[string]
-  InfoTuple* = tuple[name: string, cover: string, scraperType: string, version: string, projectUri: string, siteUri: string, scriptPath: string]
+  InfoTuple* = tuple[name: string, cover: string, scraperType: string, version: string, projectUri: string, siteUri: string, scriptPath: string, hosts: string]
   NScript* = ref object
     headerInfo*: InfoTuple
     scriptID: int
@@ -185,7 +185,7 @@ proc indexStreamHead*(this: Head, key: string): string =
   return this[key]
 # Author: @Tsu
 proc parseInfoTuple(file: string): InfoTuple =
-  var infoTuple: InfoTuple = (name: "", cover: "", scraperType: "", version: "", projectUri: "", siteUri: "", scriptPath: "")
+  var infoTuple: InfoTuple = (name: "", cover: "", scraperType: "", version: "", projectUri: "", siteUri: "", scriptPath: "", hosts: "")
   var lines = file.splitLines
   for line in lines:
     var str = line.strip
@@ -211,6 +211,8 @@ proc parseInfoTuple(file: string): InfoTuple =
           infoTuple.projectUri = value
         of "siteUri":
           infoTuple.siteUri = value
+        of "hosts":
+          infoTuple.hosts = value
     else: break
   return infoTuple
 
@@ -229,7 +231,7 @@ exportTo(ADLScript,
 const scriptIncludes = implNimScriptModule(ADLScript)
 
 # Scripts
-proc setScript*(ctx: var DownloaderContext, path: string) =
+proc setScript*(ctx: var DownloaderContext, path: string, urlPath: string) =
   ## Loads a script from Path into the DownloaderContext
   var script: NScript = NScript()
   let scr = NimScriptPath(path)
@@ -237,7 +239,8 @@ proc setScript*(ctx: var DownloaderContext, path: string) =
   script.headerInfo = readScriptInfoTuple(path)
   discard script.intr.invoke(SetID, len(scriptContextTracker))
   ctx.script = script
-proc setScriptMetadataScript*(ctx: var DownloaderContext) =
+  ## TODO: Set url
+proc setScriptMetadata*(ctx: var DownloaderContext) =
   var 
     meta: MetaData = ctx.script.intr.invoke(GetMetaData, returnType = MetaData)
     vol: Volume = Volume(mdat: meta, lower: -1, upper: -1)
@@ -266,6 +269,14 @@ proc generateContext*(str: string): DownloaderContext =
     context.setupDownloader(downloader)
     context.setDefaultHeaders()
     return context
+  # If no supported site built in, search local scripts for a match.
+  for tScript in walkFiles(getAppDir() / "scripts" / "*.nims"):
+    let info = readScriptInfoTuple(readFile(tScript))
+    if info.hosts != (if pUri.hostname == "": str else: pUri.hostname): continue
+    setScript(context, tScript, str)
+    return context
+  # No suitable downloader found for site
+  return nil
 proc shiftContext*(ctx: var DownloaderContext, site: Site, fullUri: string) =
   ctx.baseUri = site.baseUri
   ctx.defaultPage = fullUri
@@ -273,6 +284,9 @@ proc shiftContext*(ctx: var DownloaderContext, site: Site, fullUri: string) =
     if site.identifier != uri.identifier: continue
     ctx.setupDownloader(uri)
 proc setMetadata*(ctx: var DownloaderContext): bool =
+  if ctx.script != nil:
+    setScriptMetadata(ctx)
+    return true
   if ctx.setMetadataP == nil:
     return false
   ctx.setMetadataP(ctx)

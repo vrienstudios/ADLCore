@@ -156,4 +156,4 @@ proc loadEmbtakuChapterData(this: var Downloadercontext) =
 
 # Add self
 downloaderList.add ("embtaku", "video", @[("metadata", loadEmbtakuMetadata), ("parts", loadEmbtakuChapters), ("search", loadEmbtakuSearch), ("prepare", loadEmbtakuHLS), ("content", loadEmbtakuChapterData)])
-siteList.add Site(identifier: "embtaku", baseUri: "embtaku.pro", uriList: @["embtaku.pro", "embtaku"])
+siteList.add Site(identifier: "embtaku", baseUri: "embtaku.pro", uriList: @["embtaku.pro", "embtaku", "s3mbtaku", "s3mbtaku.pro"])
