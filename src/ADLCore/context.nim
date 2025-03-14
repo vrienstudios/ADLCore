@@ -116,6 +116,27 @@ proc setupDownloader*(downloader: var Downloadercontext, this: MethodList) =
         downloader.prepareP = meth.thisProc
       else:
         continue
+proc setdfHd*(this: var DownloaderContext) =
+  if this.defaultHeaders == nil:
+    this.defaultHeaders = newHttpHeaders({
+      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:101.0) Gecko/20100101 Firefox/101.0",
+      "Referer": this.baseUri,
+      "x-requested-with": "XMLHttpRequest",
+      "Accept": "*/*",
+      "Accept-Encoding": "gzip, deflate, br, zstd",
+      "Connection": "Keep-Alive",
+      "Accept-Language": "en-US,en;q=0.5",
+      "Sec-Fetch-Dest": "document",
+      "Sec-Fetch-Mode": "navigate",
+      "Sec-Fetch-Site": "same-origin",
+      "DNT": "1",
+      "Sec-GPC": "1",
+      "TE": "trailers",
+      "Priority": "u=0",
+      "Pragma": "no-cache",
+      "Cache-Control": "co-cache"
+    })
+  this.ourClient.headers = this.defaultHeaders
 proc setDefaultHeaders*(this: var DownloaderContext) =
   if this.defaultHeaders == nil:
     this.defaultHeaders = newHttpHeaders({
