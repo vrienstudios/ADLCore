@@ -8,7 +8,7 @@ import ../context
 proc kakalotSearch*(this: var DownloaderContext) =
   var metaDataSeq: seq[MetaData] = @[]
   var data = newMultipartData()
-  data["searchword"] = term
+  data["searchword"] = this.name
   let content = this.ourClient.postContent("https://mangakakalot.com/home_json_search", multipart=data)
   var json = parseJson(content)
   this.currPage = "https://mangakakalot.com"
@@ -18,27 +18,29 @@ proc kakalotSearch*(this: var DownloaderContext) =
     data.name = parseHtml(obj["name"].getStr()).innerText
     data.uri = obj["story_link"].getStr()
     metaDataSeq.add(data)
-  this.sections.add Volume(mdat: metaDataSeq, lower: -1, upper: -1, sResult: true)
-iterator kakalotGetChapter(this: var DownloaderContext, l, h: int) =
+  this.sections.add Volume(mdat: metaDataSeq[0], lower: -1, upper: -1, sResult: true)
+iterator kakalotGetChapter(this: var DownloaderContext, l, h: int): Chapter =
   setPage(this, this.defaultPage)
   if this.defaultPage.split("/")[2] != "mangakakalot.com":
     var a: seq[XmlNode] = this.page.findAll("a")
     var i = a.len - 1
     while i > 0:
+      let el = a[i]
       if el.kind != xnElement: continue
       if el.attr("class") == "chapter-name text-nowrap":
         yield Chapter(metadata: MetaData(name: el.innerText, uri: el.attr("href")))
-    return
-  var 
-    divs: seq[XmlNode] = this.page.findAll("div")
-    i = divs.len - 1
-  while i > 0:
-    var el = divs[i]
-    if el.kind != xnElement: continue
-    if el.attr("class") == "row":
-      let chapterA = el[1][0]
-      yield Chapter(metadata: MetaData(name: chapterA.innerText, uri: chapterA.attr("href")))
-    dec i
+      dec i
+  else:
+    var 
+      divs: seq[XmlNode] = this.page.findAll("div")
+      i = divs.len - 1
+    while i > 0:
+      var el = divs[i]
+      if el.kind != xnElement: continue
+      if el.attr("class") == "row":
+        let chapterA = el[1][0]
+        yield Chapter(metadata: MetaData(name: chapterA.innerText, uri: chapterA.attr("href")))
+      dec i
 proc loadKakalotChapters(this: var DownloaderContext) =
   var vol: Volume = this.sections[this.index]
   for chap in kakalotGetChapter(this, vol.lower, vol.upper):
@@ -48,7 +50,7 @@ proc getKakalotChapterDataFromPage(page: XmlNode): seq[TiNode] =
   var images: seq[TiNode]
   for img in page.findAll("img"):
     if img.kind != xnElement: continue
-    if img.attr("title").endWith("Mangakakalot.com") or img.attr("title").endsWith("MangaNato.com"):
+    if img.attr("title").endsWith("Mangakakalot.com") or img.attr("title").endsWith("MangaNato.com"):
       let img: Image = Image(isPathData: true, path: img.attr("src"))
       images.add TiNode(kind: NodeKind.ximage, image: img)
   return images
@@ -75,7 +77,7 @@ proc loadKakalotMetaData(this: var DownloaderContext) =
     cMetaData.rating = schemaJson["ratingValue"].getStr()
     var status = mangaInfoText[5].innerText
     status.removePrefix("Status : ")
-    cMetaData.statusType = parseEnum[Status](parseEnum[MangaKakalotStatus](status).symbolName)
+    #cMetaData.statusType = parseEnum[Status](parseEnum[MangaKakalotStatus](status).symbolName)
   else:
     var tds = this.page.findAll("td")
     cMetaData.name = this.page.findAll("h1")[0].innerText
@@ -93,7 +95,7 @@ proc loadKakalotMetaData(this: var DownloaderContext) =
     description.removePrefix("\nDescription :\n")
     cMetaData.description = description
     var status = tds[5].innerText
-    cMetaData.statusType = parseEnum[Status](parseEnum[MangaKakalotStatus](status).symbolName)
+    #cMetaData.statusType = parseEnum[Status](parseEnum[MangaKakalotStatus](status).symbolName)
     var genres = tds[7].innerText
     genres.removePrefix("\n")
     genres.removeSuffix("\n")

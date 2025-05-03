@@ -4,7 +4,7 @@ import nimcrypto
 import EPUB
 import ./utils
 import ./hls
-export TiNode, sequtils, os, xmltree, strutils, httpclient, htmlparser, uri, parseutils, json, utils, hls, base64, nimcrypto
+export TiNode, Image, NodeKind, sequtils, os, xmltree, strutils, httpclient, htmlparser, uri, parseutils, json, utils, hls, base64, nimcrypto
 
 type
   Status* {.pure.} = enum
