@@ -292,7 +292,7 @@ proc generateContext*(str: string): DownloaderContext =
     return context
   # If no supported site built in, search local scripts for a match.
   for tScript in walkFiles(getAppDir() / "scripts" / "*.nims"):
-    let info = readScriptInfoTuple(readFile(tScript))
+    let info = readScriptInfoTuple(tScript)
     if info.hosts != (if pUri.hostname == "": str else: pUri.hostname): continue
     setScript(context, tScript, str)
     return context
